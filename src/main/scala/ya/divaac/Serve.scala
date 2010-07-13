@@ -27,7 +27,7 @@ class Serve extends HttpServlet {
 
   override def doGet(req: HttpServletRequest, resp: HttpServletResponse) {
     req.getPathInfo match {
-      case key if key != null && !key.isEmpty => {
+      case key if key != null && key.length > 1 => {
         resp.setContentType("text/plain")
         resp.setCharacterEncoding("UTF-8")
         val writer = resp.getWriter

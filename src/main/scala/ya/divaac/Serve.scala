@@ -36,7 +36,7 @@ class Serve extends HttpServlet {
         writer.close
       }
       case _ =>
-        resp.sendError(HttpServletResponse.SC_NO_CONTENT)
+        resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
     }
   }
 }

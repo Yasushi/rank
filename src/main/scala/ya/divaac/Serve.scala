@@ -22,7 +22,7 @@ class Serve extends HttpServlet {
     assert(!s.isEmpty)
     log("key: " +s)
     def src = memo(s, 3600)((buildURL _) andThen fetch)
-    memo("json/"+s, 600)(_ => json(parse(src)))
+    memo("json/"+s, 600)(_ => parse(src).map(json).getOrElse(""))
   }
 
   override def doGet(req: HttpServletRequest, resp: HttpServletResponse) {
@@ -31,9 +31,15 @@ class Serve extends HttpServlet {
         resp.setContentType("text/plain")
         resp.setCharacterEncoding("UTF-8")
         val writer = resp.getWriter
-        writer.print(fetchRanksJson(key.drop(1)))
-        writer.flush
-        writer.close
+        fetchRanksJson(key.drop(1)) match {
+          case json if json.isEmpty =>
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
+          case json => {
+            writer.print(json)
+            writer.flush
+            writer.close
+          }
+        }
       }
       case _ =>
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT)

@@ -41,6 +41,14 @@ object DivaacRank {
 
   def buildURL(s: String) = "http://miku.sega.jp/arcade/ranking_" + s + ".php"
 
+  lazy val indexURL = "http://miku.sega.jp/arcade/ranking_index.html"
+
+  def parseIndex(s: String) = {
+    val pat = """ranking_(\d+)\.php.*""".r
+    val ns = new TagSoupFactoryAdapter loadString(s)
+    (ns \\ "a").map(_.attribute("href")).filter(_.isDefined).map(_.get.text).collect{case pat(no) => no}
+  }
+
   def main(args: Array[String]) {
     val r = parse(fetch(buildURL("015_hard")))
     println(r.head)

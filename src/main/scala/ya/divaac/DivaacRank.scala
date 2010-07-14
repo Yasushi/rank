@@ -34,7 +34,7 @@ object DivaacRank {
     (ns \\ "table" \\ "tr").drop(1).map(parse1).map(m => Rank(m("name"), m("rank"), m("score"), m("date"), m("level")))
   }
 
-  def json(ranks: Seq[Rank]) = {
+  def json(ranks: Seq[{def json: JSONLiteral.JSONValue }]) = {
     import JSONLiteral._
     JSONLiteral.toString(JSONArray(ranks.map(_.json).toList))
   }

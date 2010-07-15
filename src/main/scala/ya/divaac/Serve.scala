@@ -28,14 +28,16 @@ class Serve extends HttpServlet {
   override def doGet(req: HttpServletRequest, resp: HttpServletResponse) {
     req.getPathInfo match {
       case key if key != null && key.length > 1 => {
-        resp.setContentType("text/plain")
+        resp.setContentType("text/javascript")
         resp.setCharacterEncoding("UTF-8")
         val writer = resp.getWriter
         fetchRanksJson(key.drop(1)) match {
           case json if json.isEmpty =>
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
           case json => {
+            writer.print("callback(")
             writer.print(json)
+            writer.print(")")
             writer.flush
             writer.close
           }

@@ -3,9 +3,7 @@ package ya.divaac
 import javax.servlet.http._
 import com.google.appengine.api.memcache._
 
-
-class Serve extends HttpServlet {
-  import DivaacRank._
+object Util {
   val memcache = MemcacheServiceFactory.getMemcacheService
 
   def memo(key: String, expire: Int)(f: String => String) =
@@ -16,14 +14,7 @@ class Serve extends HttpServlet {
         memcache.put(key, value, Expiration.byDeltaSeconds(expire))
         value
       }
-    } 
-
-  def fetchRanksJson(s: String) = {
-    assert(!s.isEmpty)
-    log("key: " +s)
-    def src = memo(s, 3600)((buildURL _) andThen fetch)
-    memo("json/"+s, 600)(_ => parse(src).map(json).getOrElse(""))
-  }
+    }
 
   def printJSON(json: String, req: HttpServletRequest, resp: HttpServletResponse) {
     Option(req.getParameter("callback")) match {
@@ -40,6 +31,18 @@ class Serve extends HttpServlet {
     }
     resp.getWriter.flush
     resp.getWriter.close
+  }
+
+}
+
+class Serve extends HttpServlet {
+  import DivaacRank._
+  import Util._
+  def fetchRanksJson(s: String) = {
+    assert(!s.isEmpty)
+    log("key: " +s)
+    def src = memo(s, 3600)((buildURL _) andThen fetch)
+    memo("json/"+s, 600)(_ => parse(src).map(json).getOrElse(""))
   }
 
   override def doGet(req: HttpServletRequest, resp: HttpServletResponse) {

@@ -46,7 +46,7 @@ object DivaacRank {
       case NodeSeq.Empty => None
       case content => {
         val name = content \ "h3" \ "img" \ "@alt" text
-        val rankingPageURLPattern(no) = content \ "a" \ "@href" text
+        val rankingPageURLPattern(no) = (content \ "a" head) \ "@href" text
         val difficulty = content \ "h4" \ "img" \ "@alt" text
 
         Some(Ranking(name, no, difficulty, 

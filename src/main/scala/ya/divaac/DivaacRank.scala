@@ -4,14 +4,18 @@ import java.net.URL
 import scala.io.Source
 import scala.xml._
 import scala.xml.parsing.XhtmlParser
-import java.text.SimpleDateFormat
 
 object DivaacRank {
 
-  case class Rank(name: String, rank: String, score: String, date: String, level: String) {
+  case class Rank(player: String, rank: String, score: String, date: String, level: String) {
+    val rankpattern = """.*?(\d+)位.*?""".r
+    lazy val order = rank match {
+      case rankpattern(s) => s.toInt
+      case _ => java.lang.Integer.MAX_VALUE
+    }
     def json = {
       import JSONLiteral._
-      O("name" -> name,
+      O("name" -> player,
         "rank" -> rank,
         "score" -> score,
         "date" -> date,
@@ -49,7 +53,7 @@ object DivaacRank {
         val rankingPageURLPattern(no) = (content \ "a" head) \ "@href" text
         val difficulty = content \ "h4" \ "img" \ "@alt" text
 
-        Some(Ranking(name, no, difficulty, 
+        Some(Ranking(name, no, difficulty,
                      (ns \\ "table" \\ "tr").drop(1).map(parse1).map(m => Rank(m("name"), m("rank"), m("score"), m("date"), m("level")))))
       }
     }

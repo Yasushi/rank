@@ -5,13 +5,14 @@ import com.google.appengine.api.datastore._
 import sage.dsl._
 import scala.collection.JavaConversions._
 import Util._
+import FetchOptions.Builder._
 
 class Clear extends HttpServlet {
   val ds = DatastoreServiceFactory.getDatastoreService
 
   def del(q: Query) = {
     val keys: java.lang.Iterable[Key] =
-      asIterable(ds.prepare(q.setKeysOnly).asIterable.map(_.getKey))
+      asIterable(ds.prepare(q.setKeysOnly).asIterable(withLimit(301)).map(_.getKey))
     ds.delete(keys)
     format("%d recoreds deleted.", keys.size)
   }
@@ -25,6 +26,10 @@ class Clear extends HttpServlet {
       case Some(Array("fl")) => proc(new Query("FetchLog"))
       case Some(Array(no@noPat(), diff@diffPat())) =>
         proc((("songNo" ?== no) andThen ("difficulty" ?== diff))(new Query("RankRecord")))
+      case Some(Array(no@noPat())) =>
+        proc(("songNo" ?== no)(new Query("RankRecord")))
+      case Some(Array(diff@diffPat())) =>
+        proc(("difficulty" ?== diff)(new Query("RankRecord")))
       case _ =>
         out.println("invalid request. " + req.getPathInfo)
     }

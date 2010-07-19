@@ -5,7 +5,7 @@
   </queue>
   <queue>
     <name>fetch</name>
-    <rate>15/s</rate>
+    <rate>30/s</rate>
     <bucket-size>2</bucket-size>
   </queue>
 </queue-entries>

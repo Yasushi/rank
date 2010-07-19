@@ -19,6 +19,16 @@ class Select extends HttpServlet {
         val j = memo("s/json/p/" + player, 600)(_ => json(Persist.findByPlayer(player)))
         printJSON(j, req, resp)
       }
+      case Some(Array("p", player, no@noPat())) => {
+        log(format("player: %s, songNo: %s", player, no))
+        val j = memo(format("s/json/p/%s/no/%s", player, no), 600)(_ => json(Persist.findByPlayerAndSong(player, no)))
+        printJSON(j, req, resp)
+      }
+      case Some(Array("p", player, key)) => {
+        log(format("player: %s, key: %s", player, key))
+        val j = memo(format("s/json/p/%s/k/%s", player, key), 600)(_ => json(Persist.findByPlayerAndKey(player, key)))
+        printJSON(j, req, resp)
+      }
       case _ =>
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
     }

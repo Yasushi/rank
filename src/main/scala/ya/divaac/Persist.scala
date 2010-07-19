@@ -34,7 +34,8 @@ object Persist {
         "date" -> date,
         "level" -> level,
         "order" -> order,
-        "fetchDate" -> df.format(fetchDate))
+        "fetchDate" -> df.format(fetchDate),
+        "fetchKey" -> KeyFactory.keyToString(fetchKey))
     }
   }
 
@@ -54,6 +55,12 @@ object Persist {
 
     def findByPlayer(player: String) =
       find.query("player" ?== player).query("fetchDate" desc)
+
+    def findByPlayerAndSong(player: String, songNo: String) =
+      findByPlayer(player).query("songNo" ?== songNo)
+
+    def findByPlayerAndKey(player: String, fetchKey: Key) =
+      find.query("player" ?== player).query("fetchKey" ?== fetchKey).query("songNo" desc)
   }
 
   object FetchDate extends Base[Date]("FetchDate") {
@@ -112,6 +119,12 @@ object Persist {
 
   def findByPlayer(player: String) =
     RankRecordPS.findByPlayer(player).iterable.map(_.value)
+
+  def findByPlayerAndSong(player: String, songNo: String) =
+    RankRecordPS.findByPlayerAndSong(player, songNo).iterable.map(_.value)
+
+  def findByPlayerAndKey(player: String, fetchKey: String) =
+    RankRecordPS.findByPlayerAndKey(player, KeyFactory.stringToKey(fetchKey)).iterable.map(_.value)
 
   def toRanking(rrs: Iterable[Keyed[RankRecord]]) = {
     rrs.map(_.value).groupBy(_.toRanking()).map {

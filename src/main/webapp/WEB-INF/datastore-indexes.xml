@@ -16,5 +16,14 @@
         <property name="songNo" direction="asc"/>
         <property name="order" direction="asc"/>
     </datastore-index>
-
+    <datastore-index kind="RankRecord" ancestor="false">
+        <property name="player" direction="asc"/>
+        <property name="songNo" direction="asc"/>
+        <property name="fetchDate" direction="desc"/>
+    </datastore-index>
+    <datastore-index kind="RankRecord" ancestor="false">
+        <property name="fetchKey" direction="asc"/>
+        <property name="player" direction="asc"/>
+        <property name="songNo" direction="desc"/>
+    </datastore-index>
 </datastore-indexes>

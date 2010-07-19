@@ -26,9 +26,28 @@
     <url-pattern>/s/*</url-pattern>
   </servlet-mapping>
 
+  <servlet>
+    <servlet-name>clear</servlet-name>
+    <servlet-class>ya.divaac.Clear</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>clear</servlet-name>
+    <url-pattern>/clear/*</url-pattern>
+  </servlet-mapping>
+
   <security-constraint>
     <web-resource-collection>
+      <web-resource-name>fetch</web-resource-name>
       <url-pattern>/f/*</url-pattern>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>admin</role-name>
+    </auth-constraint>
+  </security-constraint>
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>clear</web-resource-name>
+      <url-pattern>/clear/*</url-pattern>
     </web-resource-collection>
     <auth-constraint>
       <role-name>admin</role-name>

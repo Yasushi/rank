@@ -11,7 +11,8 @@ object Util {
       case Some(value) => value.toString
       case None => {
         val value = f(key)
-        memcache.put(key, value, Expiration.byDeltaSeconds(expire))
+        if (!key.isEmpty && key != "[]")
+          memcache.put(key, value, Expiration.byDeltaSeconds(expire))
         value
       }
     }
@@ -32,6 +33,9 @@ object Util {
     resp.getWriter.flush
     resp.getWriter.close
   }
+
+  val noPat = """\d+""".r
+  val diffPat = """hard|extreme""".r
 
 }
 

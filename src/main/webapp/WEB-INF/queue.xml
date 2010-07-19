@@ -1,0 +1,11 @@
+<queue-entries>
+  <queue>
+    <name>default</name>
+    <rate>1/s</rate>
+  </queue>
+  <queue>
+    <name>fetch</name>
+    <rate>15/s</rate>
+    <bucket-size>2</bucket-size>
+  </queue>
+</queue-entries>

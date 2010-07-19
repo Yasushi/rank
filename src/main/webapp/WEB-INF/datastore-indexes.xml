@@ -1,0 +1,24 @@
+<datastore-indexes autoGenerate="true">
+
+    <datastore-index kind="FetchDate" ancestor="false">
+        <property name="date" direction="desc"/>
+    </datastore-index>
+
+    <datastore-index kind="FetchLog" ancestor="false">
+        <property name="songNo" direction="asc"/>
+        <property name="difficulty" direction="asc"/>
+        <property name="date" direction="desc"/>
+    </datastore-index>
+
+    <datastore-index kind="RankRecord" ancestor="false">
+        <property name="player" direction="asc"/>
+        <property name="fetchDate" direction="desc"/>
+    </datastore-index>
+    <datastore-index kind="RankRecord" ancestor="false">
+        <property name="songNo" direction="asc"/>
+        <property name="difficulty" direction="asc"/>
+        <property name="fetchKey" direction="asc"/>
+        <property name="order" direction="asc"/>
+    </datastore-index>
+
+</datastore-indexes>

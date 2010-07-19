@@ -8,4 +8,22 @@
     <servlet-name>serve</servlet-name>
     <url-pattern>/j/*</url-pattern>
   </servlet-mapping>
+
+  <servlet>
+    <servlet-name>fetch</servlet-name>
+    <servlet-class>ya.divaac.Fetch</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>fetch</servlet-name>
+    <url-pattern>/f/*</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <servlet-name>select</servlet-name>
+    <servlet-class>ya.divaac.Select</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>select</servlet-name>
+    <url-pattern>/s/*</url-pattern>
+  </servlet-mapping>
+
 </web-app>

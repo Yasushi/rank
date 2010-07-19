@@ -59,10 +59,13 @@ object DivaacRank {
     }
   }
 
-  def json(obj:{def json: JSONLiteral.JSONValue}) = {
+  def json(it:Iterable[{def json: JSONLiteral.JSONValue}]) ={
     import JSONLiteral._
-    JSONLiteral.toString(obj.json)
+    JSONLiteral.toString(A(it.map(_.json).toSeq:_*))
   }
+
+  def json(obj:{def json: JSONLiteral.JSONValue}) =
+    JSONLiteral.toString(obj.json)
 
   def buildURL(s: String) = "http://miku.sega.jp/arcade/ranking_" + s + ".php"
 

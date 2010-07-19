@@ -51,7 +51,7 @@ object DivaacRank {
       case content => {
         val name = content \ "h3" \ "img" \ "@alt" text
         val rankingPageURLPattern(no) = (content \ "a" head) \ "@href" text
-        val difficulty = content \ "h4" \ "img" \ "@alt" text
+        val difficulty = (content \ "h4" \ "img" \ "@alt" text) toLowerCase
 
         Some(Ranking(name, no, difficulty,
                      (ns \\ "table" \\ "tr").drop(1).map(parse1).map(m => Rank(m("name"), m("rank"), m("score"), m("date"), m("level")))))

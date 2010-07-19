@@ -75,7 +75,7 @@ object Persist {
   def validateFetchKey(key: String) = {
     FetchDate.lookup(KeyFactory.stringToKey(key).getId) collect {
       case Keyed(_, date) =>
-        new Date().getTime - date.getTime > 2 * 3600 * 1000
+        new Date().getTime - date.getTime < 2 * 3600 * 1000
     } getOrElse false
   }
 

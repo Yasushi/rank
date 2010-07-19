@@ -6,7 +6,10 @@ import com.google.appengine.api.memcache._
 object Util {
   val memcache = MemcacheServiceFactory.getMemcacheService
 
-  def memo(key: String, expire: Int)(f: String => String) =
+  def memoB(key: String, expire: Int = 600)(f: => Boolean) =
+    memo(key, expire)(_ => f.toString).toBoolean
+
+  def memo(key: String, expire: Int = 600)(f: String => String) =
     Option(memcache.get(key)) match {
       case Some(value) => value.toString
       case None => {

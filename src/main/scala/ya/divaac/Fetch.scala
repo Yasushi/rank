@@ -25,13 +25,21 @@ class Fetch extends HttpServlet {
   }
 
   def fetchRanking(songNo: String, difficulty: String, key: Option[String]) {
-    if (!Persist.isStaled(songNo, difficulty)) {
-      log(format("skipped. songNo: %s, difficulty: %s, key: %s",
+    val isValidKey = key.map(k => memoB("f/k/" + k)(Persist.validateFetchKey(k))) getOrElse true
+    if (!isValidKey) {
+      log(format("skip old fetchkey. songNo: %s, difficulty: %s, key: %s",
                  songNo, difficulty, key))
       return
     }
 
-    val fk = key.filter(Persist.validateFetchKey) getOrElse(Persist.newFetchKey)
+    val isStaled = memoB(format("f/s/%s/%s", songNo, difficulty))(Persist.isStaled(songNo, difficulty))
+    if (!isStaled) {
+      log(format("skip already fetched. songNo: %s, difficulty: %s, key: %s",
+                 songNo, difficulty, key))
+      return
+    }
+
+    val fk = key getOrElse(Persist.newFetchKey)
     parse(src(songNo + "_" + difficulty)) match {
       case Some(ranking) => {
         Persist.save(ranking, fk)

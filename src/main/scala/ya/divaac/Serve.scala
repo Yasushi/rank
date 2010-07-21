@@ -14,7 +14,7 @@ object Util {
       case Some(value) => value.toString
       case None => {
         val value = f(key)
-        if (!key.isEmpty && key != "[]")
+        if (Option(value).exists(_.length > 5))
           memcache.put(key, value, Expiration.byDeltaSeconds(expire))
         value
       }

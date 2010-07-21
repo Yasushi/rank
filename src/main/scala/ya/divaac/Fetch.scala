@@ -14,41 +14,26 @@ class Fetch extends HttpServlet {
 
   def queueAllFetching {
     import TaskOptions.Builder._
-    val index = memo("index", 3600)(_ => fetch(indexURL))
-    val fk = Persist.newFetchKey
+    val index = memo("index", 3600 * 23)(_ => fetch(indexURL))
     val queue = QueueFactory.getQueue("fetch")
     for (no <- parseIndex(index); diff <- List("hard", "extreme")) {
-      val target = format("/f/%s/%s/%s", no, diff, fk)
+      val target = format("/f/%s/%s", no, diff)
       log("queued " + target)
       queue.add(url(target).method(TaskOptions.Method.GET))
     }
   }
 
-  def fetchRanking(songNo: String, difficulty: String, key: Option[String]) {
-    val isValidKey = key.map(k => memoB("f/k/" + k)(Persist.validateFetchKey(k))) getOrElse true
-    if (!isValidKey) {
-      log(format("skip old fetchkey. songNo: %s, difficulty: %s, key: %s",
-                 songNo, difficulty, key))
-      return
-    }
-
-    val isStaled = memoB(format("f/s/%s/%s", songNo, difficulty))(Persist.isStaled(songNo, difficulty))
-    if (!isStaled) {
-      log(format("skip already fetched. songNo: %s, difficulty: %s, key: %s",
-                 songNo, difficulty, key))
-      return
-    }
-
-    val fk = key getOrElse(Persist.newFetchKey)
+  def fetchRanking(songNo: String, difficulty: String, force: Boolean = false) {
+    val paramString = format("songNo: %s, difficulty: %s, force: %s", songNo, difficulty, force)
     parse(src(songNo + "_" + difficulty)) match {
       case Some(ranking) => {
-        Persist.save(ranking, fk)
-        log(format("saved. songNo: %s, difficulty: %s, key: %s, fk: %s",
-                   songNo, difficulty, key, fk))
+        if(Persist.save(ranking, force))
+          log("saved. " + paramString)
+        else
+          log("skip. already saved. " + paramString)
       }
       case None =>
-        log(format("fetch fail. songNo: %s, difficulty: %s, key: %s, fk: %s",
-                   songNo, difficulty, key, fk))
+        log("fetch or parse fail. " + paramString)
     }
   }
 
@@ -56,10 +41,7 @@ class Fetch extends HttpServlet {
     log("task header: " + headers.map(h => Option(req.getHeader(h))).filter(_.isDefined).map(_.get).mkString(","))
     Option(req.getPathInfo).map(_.stripPrefix("/").split("/")) match {
       case Some(Array("all")) => queueAllFetching
-      case Some(Array(no@noPat(), diff@diffPat(), key)) =>
-        fetchRanking(no, diff, Option(key))
-      case Some(Array(no@noPat(), diff@diffPat())) =>
-        fetchRanking(no, diff, None)
+      case Some(Array(no@noPat(), diff@diffPat())) => fetchRanking(no, diff)
       case _ =>
         log("invalid pathinfo. pathinfo: " + Option(req.getPathInfo).mkString)
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT)

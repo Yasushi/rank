@@ -9,7 +9,7 @@ class AppengineUtilsSpecs extends Specification {
     new LocalDatastoreServiceTestConfig()
   )
 
-  implicit val datastoreService = DatastoreServiceFactory.getDatastoreService 
+  implicit val datastoreService = DatastoreServiceFactory.getDatastoreService
 
   "datastore" should {
     doBefore{ helper.setUp }

@@ -29,8 +29,8 @@ class StoreSpecs extends Specification {
 
     "mapping" in {
       import metascala.HLists._
-      val fk = KeyFactory.stringToKey(newFetchKey)
-      val rr = ranking.entries.map(r => new RankRecord(ranking, r, fk))
+      val created = new Date
+      val rr = ranking.entries.map(r => new RankRecord(ranking, r, created))
       val e = new Entity("RankRecord")
       e.setProperty("songName", "name")
       e.setProperty("songNo", "001")
@@ -41,25 +41,24 @@ class StoreSpecs extends Specification {
       e.setProperty("date", "2010/1/1")
       e.setProperty("level", "Lv 1")
       e.setProperty("order", 10.toLong.asInstanceOf[java.lang.Long])
-      e.setProperty("fetchKey", fk)
+      e.setProperty("fetchDate", created)
+      e.setProperty("createDate", created)
+      e.setProperty("rankingId", DateUtils.rankingId(created))
 
-      RankRecordPS.write(rr.head, new Entity("RankRecord")).getProperties must beEqual(e.getProperties)
+      RankRecordPS.write(rr.head, new Entity("RankRecord")).getProperties must beEqual(asMap(e.getProperties.filterKeys(_ != "fetchDate")))
       RankRecordPS.read(e) must beLike {
         case Some(r) => r must beEqual(rr.head)
       }
     }
 
     "save and load" in {
-      Persist.save(ranking)
+      skip("")
+      Persist.save(ranking) must beTrue;
 
       import dsl._
-
-      println(FetchDate.find.iterable)
-      println(FetchLogPS.find.iterable)
       println(RankRecordPS.find.query("order" asc).iterable)
       println("--")
-      println(Persist.loadLatest("001", "hard"))
-
+      println(Persist.findBySong("001", "hard"))
     }
   }
 }

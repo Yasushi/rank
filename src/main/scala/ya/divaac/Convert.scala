@@ -38,7 +38,7 @@ class Convert extends HttpServlet {
     cursorString match {
       case Some(c) => {
         val queue = QueueFactory.getQueue("fetch")
-        queue.add(url("/cv/" + c).method(TaskOptions.Method.GET).countdownMillis(10 * 1000))
+        queue.add(url("/cv/" + c).method(TaskOptions.Method.GET).countdownMillis(60 * 1000))
         log("queued " + c)
       }
       case None => log("end")

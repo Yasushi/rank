@@ -22,6 +22,7 @@ class Clear extends HttpServlet {
     val out = resp.getWriter
     val proc = ((del _) andThen out.print)
     Option(req.getPathInfo).map(_.stripPrefix("/").split("/")) match {
+      case Some(Array("mc")) => memcache.clearAll
       case Some(Array("fd")) => proc(new Query("FetchDate"))
       case Some(Array("fl")) => proc(new Query("FetchLog"))
       case Some(Array(no@noPat(), diff@diffPat())) =>

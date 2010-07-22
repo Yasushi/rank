@@ -14,19 +14,15 @@ class Convert extends HttpServlet {
 
   def exec(cursorString: Option[String]) = {
     def convertToNewRecord(e: Entity) = {
-      for(d <- e.property[Date]("fetchDate")) {
-        e.setProperty("fetchDate", null)
-        e.setProperty("createDate", d)
-        e.setProperty("rankingId", DateUtils.rankingId(d))
-      }
+      e.setProperty("fetchKey", null)
       e
     }
     val fo = withLimit(300).startCursor(Cursor.fromWebSafeString(cursorString.getOrElse("")))
-    val q = ("fetchDate" ?< DateUtils.asCalendar(2010,7,22,20).getTime) andThen ("fetchDate" ?> DateUtils.asCalendar(2010,7,1).getTime)
+    val q = ("fetchKey" ?> "")
     val qrl = ds.prepare(q(new Query("RankRecord"))).asQueryResultList(fo)
     log(format("convert start %s", cursorString))
     if (!qrl.isEmpty) {
-      ds.put(asIterable(qrl filter(_.property[Date]("fetchDate").isDefined) map convertToNewRecord))
+      ds.put(asIterable(qrl filter(_.property[Key]("fetchKey").isDefined) map convertToNewRecord))
       log(format("converted %d records. cursor: %s, next: %s.", qrl.size, cursorString, qrl.getCursor.toWebSafeString))
       Some(qrl.getCursor.toWebSafeString)
     } else
@@ -38,7 +34,7 @@ class Convert extends HttpServlet {
     cursorString match {
       case Some(c) => {
         val queue = QueueFactory.getQueue("fetch")
-        queue.add(url("/cv/" + c).method(TaskOptions.Method.GET).countdownMillis(60 * 1000))
+        queue.add(url("/cv/" + c).method(TaskOptions.Method.GET).countdownMillis(30 * 1000))
         log("queued " + c)
       }
       case None => log("end")

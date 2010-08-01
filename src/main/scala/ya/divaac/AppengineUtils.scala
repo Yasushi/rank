@@ -3,6 +3,7 @@ package ya.divaac
 import scala.util.Properties._
 
 import com.google.appengine.api.datastore._
+import com.google.appengine.api.memcache._
 import com.google.apphosting.api._
 import DatastorePb.{GetSchemaRequest, PutRequest, Schema}
 import com.google.storage.onestore.v3.OnestoreEntity.Reference
@@ -37,5 +38,30 @@ object AppengineUtils {
     }
 
     def getKind(key: Reference) = key.getPath.elements.last.getType
+  }
+
+  object Memcache {
+    val memcacheService = MemcacheServiceFactory.getMemcacheService
+
+    class Memoize1[-T, +R](f: T => R, expire: Expiration) extends (T => R) {
+      def apply(x: T): R ={
+        Option(memcacheService.get(x)) match {
+          case None => {
+            val value = f(x)
+            if (value != null)
+              memcacheService.put(x, value, expire)
+            value
+          }
+          case Some(value) => value.asInstanceOf[R]
+        }
+      }
+    }
+    object Memoize1 {
+      import Expiration._
+      val defaultExpire = byDeltaSeconds(3600)
+      def apply[T, R](f: T => R, expire: Expiration) = new Memoize1(f, expire)
+      def apply[T, R](f: T => R, expire: Int) = new Memoize1(f, byDeltaSeconds(expire))
+      def apply[T, R](f: T => R) = new Memoize1(f, defaultExpire)
+    }
   }
 }

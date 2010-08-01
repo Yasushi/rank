@@ -1,5 +1,5 @@
 <datastore-indexes autoGenerate="true">
-
+<!--
   <datastore-index kind="RankRecord" ancestor="false">
     <property name="songNo" direction="asc"/>
     <property name="difficulty" direction="asc"/>
@@ -24,5 +24,5 @@
     <property name="player" direction="asc"/>
     <property name="rankingId" direction="desc"/>
   </datastore-index>
-
+-->
 </datastore-indexes>

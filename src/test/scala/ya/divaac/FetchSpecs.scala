@@ -33,8 +33,11 @@ class FetchSpecs extends Specification {
           records must haveSize(300)
       }
     }
+
     "not found key" >> {
-      skip("")
+      memcacheService.put(buildURL(rankingKey), "")
+      fetch(buildURL(rankingKey)) must beEqual("")
+      fetchRanking(rankingKey) must beNone
     }
 
     "convert" >> {

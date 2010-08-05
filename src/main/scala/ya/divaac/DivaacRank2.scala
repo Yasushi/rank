@@ -93,14 +93,17 @@ object DivaacRank2 extends Log {
         ns(_.attribute(a).exists(_.text==v))
       def record(tr: NodeSeq) =
         tr \ "td" map(e => Symbol(e \ "@class" text) -> e.text) toMap
-
-      val ns = new TagSoupFactoryAdapter loadString(fetch(buildURL(key)))
-      val content = attrHasValue(ns \\ "div", "id", "content")
-      val songName = content \ "h3" \ "img" \ "@alt" text
-      val records = content \ "div"  \ "table" \ "tr" drop(1) map(record)
-      if (!records.isEmpty)
-        Some(RawRanking(key, songName, records))
-      else
+      val src = fetch(buildURL(key))
+      if (!src.isEmpty) {
+        val ns = new TagSoupFactoryAdapter loadString(src)
+        val content = attrHasValue(ns \\ "div", "id", "content")
+        val songName = content \ "h3" \ "img" \ "@alt" text
+        val records = content \ "div"  \ "table" \ "tr" drop(1) map(record)
+        if (!records.isEmpty)
+          Some(RawRanking(key, songName, records))
+        else
+          None
+      } else
         None
     } catch {
       case ex =>

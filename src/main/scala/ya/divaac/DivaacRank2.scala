@@ -11,13 +11,17 @@ object DivaacRank2 extends Log {
   }
   object Player {
     def key(name: String, level: String) = format("%s__%s", name, level)
+    def getOrNew(name: String, level: String) = new Player(name, level)
   }
   case class Record(song: Song, order: Long, score: Long, player: Player,
                     recordDate: String) {
     lazy val key = format("%s__%03d", song.key, order)
   }
-  case class Song(key: String, name: Option[String])
-  case class Ranking(song: Song, key: String, records: Record*)
+  case class Song(key: String, name: String)
+  case class Ranking(song: Song, key: String, records: Seq[Record])
+  object Song {
+    def getOrNew(key: String, name: String) = Song(key, name)
+  }
 
   def using[A <: { def close() }, B](resource: A)(f: A => B): B = {
     try {
@@ -60,9 +64,27 @@ object DivaacRank2 extends Log {
     }
   }
 
-  lazy val buildURL = Memoize1({s: String => "http://miku.sega.jp/arcade/ranking_" + s + ".php"})
+  def buildURL(key: String) = format("http://miku.sega.jp/arcade/ranking_%s.php", key)
 
-  case class RawRanking(key: String, songName: String, recoreds: Seq[Map[Symbol, String]])
+  case class RawRanking(key: String, songName: String, records: Seq[Map[Symbol, String]]) {
+    def map2Record(m: Map[Symbol, String]) = try {
+      val rankPat = """(\d+)位""".r
+      val song = Song.getOrNew(key, songName)
+      val rankPat(orderStr) = m('rank)
+      val score = m('score).toLong
+      val player = Player.getOrNew(m('name), m('level))
+      Some(Record(song, orderStr.toLong, score, player, m('date)))
+    } catch {
+      case e =>
+        warn(format("record parse error. (%s)", m), e)
+        None
+    }
+
+    def toRanking: Ranking = {
+      val song = Song.getOrNew(key, songName)
+      Ranking(Song.getOrNew(key, songName), key, records flatMap(map2Record))
+    }
+  }
 
   lazy val fetchRanking = Memoize1(fetchRankingImpl)
   def fetchRankingImpl(key: String): Option[RawRanking] = {
@@ -76,23 +98,14 @@ object DivaacRank2 extends Log {
       val content = attrHasValue(ns \\ "div", "id", "content")
       val songName = content \ "h3" \ "img" \ "@alt" text
       val records = content \ "div"  \ "table" \ "tr" drop(1) map(record)
-      Some(RawRanking(key, songName, records))
+      if (!records.isEmpty)
+        Some(RawRanking(key, songName, records))
+      else
+        None
     } catch {
       case ex =>
         error("ranking parse error", ex)
         None
     }
   }
-
-  /*
-  lazy val orderPat = """(\d+)位""".r
-  lazy val scorePat = """\d+""".r
-  def parseRecord(r: Seq[String], song: Song,
-                  players: Map[String, Player]) = r match {
-      case Seq(_@orderPat(order), score@scorePat(), name, _, date) if players.contains(name) =>
-        Some(Record(song, order.toLong, score.toLong, players(name), date))
-      case _ => None
-    }
-  }
-  */
 }

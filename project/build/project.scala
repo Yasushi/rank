@@ -12,4 +12,13 @@ class DiivaacRank(info: ProjectInfo) extends AppengineProject(info) with JRebel 
 
   override def jrebelJvmOptions =
     List("-Drebel.log=true", "-Drebel.log.stdout=true")
+
+  override def consoleInit = """
+import com.google.appengine.tools.development.testing._
+import ya.divaac._
+val helper = new LocalServiceTestHelper(
+  new LocalMemcacheServiceTestConfig()
+)
+helper.setUp
+"""
 }

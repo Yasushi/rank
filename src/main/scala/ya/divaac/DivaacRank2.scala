@@ -1,27 +1,43 @@
 package ya.divaac
 
 import java.net.URL
+import java.util.Date
 import scala.io.Source
 import scala.xml._
+import sage._
 import AppengineUtils.Memcache.{Memoize0, Memoize1}
+import AppengineUtils.Datastore
 
 object DivaacRank2 extends Log {
-  case class Player(name: String, level: String) {
-    lazy val key = Player.key(name, level)
+  implicit val datastoreService = AppengineUtils.Datastore.datastoreService
+  case class Player(name: String, level: String, ts:Date = new Date) {
+    lazy val key: String = Player.key(name, level)
   }
   object Player {
+    object ps extends DBase[Player]("Player") {
+      def * = "name".prop[String] :: "level".propNi[String] :: "ts".prop[Date] >< ((Player.apply _) <-> Player.unapply)
+      def key(p: Player) = key(p.key)
+    }
     def key(name: String, level: String) = format("%s__%s", name, level)
-    def getOrNew(name: String, level: String) = new Player(name, level)
+
+    lazy val lookup = Memoize1(lookupImpl)
+    def lookupImpl(key: String) = ps lookup(ps.key(key)) map(_.value)
+    def save(players: Seq[Player]) {
+      ps.notStored(players) match {
+        case Seq() =>
+        case notStored => ps.save(notStored)
+      }
+    }
   }
   case class Record(song: Song, order: Long, score: Long, player: Player,
                     recordDate: String) {
     lazy val key = format("%s__%03d", song.key, order)
   }
   case class Song(key: String, name: String)
-  case class Ranking(song: Song, key: String, records: Seq[Record])
   object Song {
     def getOrNew(key: String, name: String) = Song(key, name)
   }
+  case class Ranking(song: Song, key: String, records: Seq[Record])
 
   def using[A <: { def close() }, B](resource: A)(f: A => B): B = {
     try {
@@ -72,7 +88,7 @@ object DivaacRank2 extends Log {
       val song = Song.getOrNew(key, songName)
       val rankPat(orderStr) = m('rank)
       val score = m('score).toLong
-      val player = Player.getOrNew(m('name), m('level))
+      val player = Player(m('name), m('level))
       Some(Record(song, orderStr.toLong, score, player, m('date)))
     } catch {
       case e =>

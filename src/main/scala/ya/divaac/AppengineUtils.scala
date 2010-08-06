@@ -19,7 +19,9 @@ object AppengineUtils {
   lazy val isProduction = propOrNone(ENVIRONMENT) exists(_ == "Production")
   lazy val version = propOrEmpty(VERSION)
 
-  object Datastore {
+  object Datastore extends Log {
+    import KeyFactory._
+    lazy val datastoreService = DatastoreServiceFactory.getDatastoreService
     def getSchema = {
       if (isProduction)
         throw new IllegalStateException("")
@@ -38,6 +40,20 @@ object AppengineUtils {
     }
 
     def getKind(key: Reference) = key.getPath.elements.last.getType
+
+    def withTx[T](f: (Transaction => T)) = {
+      val tx = datastoreService.beginTransaction
+      try {
+        f(tx)
+      } finally {
+        Option(datastoreService.getCurrentTransaction(tx)).filter(_.isActive).foreach(_.rollback)
+      }
+    }
+
+    def key(kind: String, name: String, parent: Key = null) =
+      if (parent == null) createKey(kind, name)
+      else createKey(parent, kind, name)
+
   }
 
   object Memcache {

@@ -20,8 +20,7 @@ object DivaacRank2 extends Log {
     }
     def key(name: String, level: String) = format("%s__%s", name, level)
 
-    lazy val lookup = Memoize1(lookupImpl)
-    def lookupImpl(key: String) = ps lookup(ps.key(key)) map(_.value)
+    def lookup(key: String) = ps lookup(ps.key(key)) map(_.value)
     def save(players: Seq[Player]) {
       ps.notStored(players) match {
         case Seq() =>
@@ -33,9 +32,15 @@ object DivaacRank2 extends Log {
                     recordDate: String) {
     lazy val key = format("%s__%03d", song.key, order)
   }
-  case class Song(key: String, name: String)
+  case class Song(key: String, name: String, ts: Date = new Date)
   object Song {
-    def getOrNew(key: String, name: String) = Song(key, name)
+    object ps extends DBase[Song]("Song") {
+      def * = "key".prop[String] :: "name".propNi[String] :: "ts".prop[Date] >< ((Song.apply _) <-> Song.unapply)
+      def key(s: Song) = key(s.key)
+    }
+    lazy val all = Memoize0(allImpl, "SongAll", 12 * 3600)
+    def allImpl = ps.toMap(ps.find.iterable)
+    def save(songs: Song*) = ps.save(songs)
   }
   case class Ranking(song: Song, key: String, records: Seq[Record])
 
@@ -85,7 +90,7 @@ object DivaacRank2 extends Log {
   case class RawRanking(key: String, songName: String, records: Seq[Map[Symbol, String]]) {
     def map2Record(m: Map[Symbol, String]) = try {
       val rankPat = """(\d+)位""".r
-      val song = Song.getOrNew(key, songName)
+      val song = Song(key, songName)
       val rankPat(orderStr) = m('rank)
       val score = m('score).toLong
       val player = Player(m('name), m('level))
@@ -97,8 +102,8 @@ object DivaacRank2 extends Log {
     }
 
     def toRanking: Ranking = {
-      val song = Song.getOrNew(key, songName)
-      Ranking(Song.getOrNew(key, songName), key, records flatMap(map2Record))
+      val song = Song(key, songName)
+      Ranking(Song(key, songName), key, records flatMap(map2Record))
     }
   }
 

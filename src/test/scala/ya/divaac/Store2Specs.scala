@@ -43,4 +43,14 @@ class Store2Specs extends Specification {
       Player.lookup(Player.key("name", "lv")) must beEqual(Some(p))
     }
   }
+
+  "song" should {
+    doBefore{ helper.setUp }
+    doAfter{ helper.tearDown }
+    "all" >> {
+      val ss = for(n <- Seq("a","b","c"); k <- Difficulties) yield Song(n+"_"+k, n)
+      Song.save(ss:_*)
+      Song.all().values must haveTheSameElementsAs(ss)
+    }
+  }
 }

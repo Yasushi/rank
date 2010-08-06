@@ -16,6 +16,9 @@ abstract class DBase[T](val kind: String) extends EntityBase[T] {
     keys zip ts map ((k:Key, b:T) => Keyed(k,b)).tupled
   }
 
+  def toMap(keyed: Iterable[Keyed[T]]) =
+    keyed.map(k => k.key.getName -> k.value).toMap
+
   def storedKeys(ts: Seq[T])(implicit ds: DatastoreService) =
     find.query("__key__" ?⊂ ts.map(key)).keys.toSet
   def notStored(ts:Seq[T])(implicit ds: DatastoreService) = {

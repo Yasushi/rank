@@ -53,13 +53,16 @@ object AppengineUtils {
     def key(kind: String, name: String, parent: Key = null) =
       if (parent == null) createKey(kind, name)
       else createKey(parent, kind, name)
+    def keyById(kind: String, id: Long, parent: Key = null) =
+      if (parent == null) createKey(kind, id)
+      else createKey(parent, kind, id)
 
   }
 
   object Memcache {
     val memcacheService = MemcacheServiceFactory.getMemcacheService
     import Expiration._
-    val defaultExpire = byDeltaSeconds(3600)
+    val defaultExpire = byDeltaSeconds(6 * 3600)
 
     def validValue[R](value: R) = value != null && (value match {
       case s: String => !s.isEmpty

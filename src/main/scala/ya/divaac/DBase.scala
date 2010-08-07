@@ -21,7 +21,7 @@ abstract class DBase[T](val kind: String) extends EntityBase[T] {
 
   def storedKeys(ts: Seq[T])(implicit ds: DatastoreService) =
     find.query("__key__" ?⊂ ts.map(key)).keys.toSet
-  def notStored(ts:Seq[T])(implicit ds: DatastoreService) = {
+  def notStored(ts: Seq[T])(implicit ds: DatastoreService) = {
     val keys = storedKeys(ts)
     ts.filter(t => !keys.contains(key(t)))
   }

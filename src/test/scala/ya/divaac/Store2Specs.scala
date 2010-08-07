@@ -1,6 +1,10 @@
 package ya.divaac
 
 import org.specs._
+
+import scala.collection.JavaConversions._
+import scala.io.Source
+
 import com.google.appengine.tools.development.testing._
 import com.google.appengine.api.datastore._
 import com.google.appengine.api.memcache._
@@ -18,6 +22,10 @@ class Store2Specs extends Specification {
 
   implicit val datastoreService = DatastoreServiceFactory.getDatastoreService
   val memcacheService = MemcacheServiceFactory.getMemcacheService
+
+  lazy val songKey = "stst_hard"
+  lazy val songSource =
+    Source.fromFile("src/test/resources/ranking_stst_hard.php", "Shift_JIS").mkString
 
   "player" should {
     doBefore{ helper.setUp }
@@ -53,4 +61,76 @@ class Store2Specs extends Specification {
       Song.all().values must haveTheSameElementsAs(ss)
     }
   }
+
+  "save" should {
+    doBefore{
+      helper.setUp
+      memcacheService.put(buildURL(songKey), songSource)
+    }
+    doAfter{ helper.tearDown }
+    "ranking" >> {
+      val Some(rr) = fetchRanking(songKey)
+      val r = rr.toRanking
+      Ranking.save(r)
+
+      val er = datastoreService.prepare(new Query("Ranking")).asSingleEntity
+      println(er)
+      val err = datastoreService.prepare(new Query("Record", er.getKey)).asIterable
+      println(err.head)
+      err.size must beEqual(300)
+      println(err.drop(102).take(3))
+
+      import Query.FilterOperator._
+      val playerKey = createKey("Player", "ふすぃみっちゃん__Lv 106 カンツォーナ")
+      val r1 = datastoreService.prepare(new Query("Record", er.getKey).addFilter("player", EQUAL, playerKey)).asSingleEntity
+
+      println(r1)
+
+      val ps = datastoreService.prepare(new Query("Player")).asIterable
+      println(ps.head)
+      ps.size must beEqual(300)
+
+      val song = datastoreService.prepare(new Query("Song")).asIterable
+      println(song.head)
+      song.size must beEqual(1)
+    }
+  }
+
+  "entity spec" should {
+    skip("")
+    doBefore{helper.setUp}
+    doAfter{ helper.tearDown }
+    val ds = datastoreService
+    "same id" >> {
+      val e1 = new Entity(createKey("entity", 1))
+      e1.setProperty("name", "e1")
+      val e2 = new Entity(createKey("entity", 1))
+      e2.setProperty("name", "e2")
+
+      ds.put(e1)
+      ds.get(createKey("entity", 1)).property[String]("name") must beEqual(Some("e1"))
+
+      ds.put(e2)
+      ds.get(createKey("entity", 1)).property[String]("name") must beEqual(Some("e2"))
+    }
+
+    "same id and different parent" >> {
+      val pk1 = createKey("parent", 1)
+      ds.put(new Entity(pk1))
+      val pk2 = createKey("parent", 2)
+      ds.put(new Entity(pk2))
+      val e1 = new Entity(createKey(pk1, "entity", 1))
+      e1.setProperty("name", "e1")
+      val e2 = new Entity(createKey(pk2, "entity", 1))
+      e2.setProperty("name", "e2")
+
+      ds.put(e1)
+      ds.put(e2)
+
+      ds.get(createKey("entity", 1)) must throwA[EntityNotFoundException]
+      ds.get(createKey(pk1, "entity", 1)).property[String]("name") must beEqual(Some("e1"))
+      ds.get(createKey(pk2, "entity", 1)).property[String]("name") must beEqual(Some("e2"))
+    }
+  }
+
 }

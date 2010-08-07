@@ -50,7 +50,8 @@ object DateUtils {
   def asCalendar(amounts: Int*): Calendar =
     Calendar.getInstance.setTZ(JST).setAll(amounts:_*)
 
-  def rankingId(d: Date = new Date) = {
+  def rankingId(d: Date = new Date) = rankingDate(d)
+  def rankingDate(d: Date = new Date) = {
     val c = asCalendar(d)
     c -= (Calendar.HOUR_OF_DAY, 12)
     c.truncate

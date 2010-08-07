@@ -4,9 +4,11 @@ import java.net.URL
 import java.util.Date
 import scala.io.Source
 import scala.xml._
+import scala.collection.JavaConversions._
 import sage._
 import AppengineUtils.Memcache.{Memoize0, Memoize1}
 import AppengineUtils.Datastore
+import com.google.appengine.api.datastore.Key
 
 object DivaacRank2 extends Log {
   implicit val datastoreService = AppengineUtils.Datastore.datastoreService
@@ -19,8 +21,14 @@ object DivaacRank2 extends Log {
       def key(p: Player) = key(p.key)
     }
     def key(name: String, level: String) = format("%s__%s", name, level)
+    val keyPat = """(.*?)__(.*)""".r
+    def decodeKey(key: String) = key match {
+      case keyPat(name, level) => Some(Player(name, level))
+      case _ => None
+    }
 
-    def lookup(key: String) = ps lookup(ps.key(key)) map(_.value)
+    lazy val lookup = Memoize1(lookupImpl)
+    def lookupImpl(key: String) = ps lookup(ps.key(key)) map(_.value)
     def save(players: Seq[Player]) {
       ps.notStored(players) match {
         case Seq() =>
@@ -28,21 +36,59 @@ object DivaacRank2 extends Log {
       }
     }
   }
-  case class Record(song: Song, order: Long, score: Long, player: Player,
-                    recordDate: String) {
-    lazy val key = format("%s__%03d", song.key, order)
+  case class Record(score: Long, player: Player, recordDate: String)
+  object Record {
+    object ps extends Base[Record]("Record") {
+      def * = "score".propNi[Long] :: "player".prop[Key] :: "recordDate".propNi[String] >< ((a _) <-> u)
+      def a(score: Long, player: Key, recordDate: String) =
+        Record(score, Player.decodeKey(player.getName).get, recordDate)
+      def u(r: Record) =
+        Some(r.score, Player.ps.key(r.player), r.recordDate)
+      def e(r: Record, order: Long, pk: Key) =
+        keyedEntity(r, Datastore.keyById(kind, order, pk))
+    }
+
+    def save(rs: Seq[Record], pk: Key) = {
+      val es =
+        rs.sortBy(_.score * -1).zipWithIndex.map{case(r, i) => ps.e(r, i+1, pk)}
+      datastoreService.put(asIterable(es))
+    }
   }
   case class Song(key: String, name: String, ts: Date = new Date)
   object Song {
     object ps extends DBase[Song]("Song") {
-      def * = "key".prop[String] :: "name".propNi[String] :: "ts".prop[Date] >< ((Song.apply _) <-> Song.unapply)
+      def * = "key".propNi[String] :: "name".propNi[String] :: "ts".prop[Date] >< ((Song.apply _) <-> Song.unapply)
       def key(s: Song) = key(s.key)
     }
-    lazy val all = Memoize0(allImpl, "SongAll", 12 * 3600)
+    def all = Memoize0(allImpl, "SongAll", 12 * 3600)()
     def allImpl = ps.toMap(ps.find.iterable)
+    def lookup(key: String) = all(key)
     def save(songs: Song*) = ps.save(songs)
   }
-  case class Ranking(song: Song, key: String, records: Seq[Record])
+  case class Ranking(song: Song, records: Seq[Record] = Seq.empty,
+                     ts: Date = new Date) {
+    lazy val rankingDate = DateUtils.rankingDate(ts)
+    lazy val key = format("%s__%s", song.key, rankingDate)
+  }
+  object Ranking {
+    object ps extends DBase[Ranking]("Ranking") {
+      def * = "song".prop[String] :: "ts".prop[Date] >< ((a _) <-> u)
+      def a(songKey: String, ts: Date) =
+        Ranking(Song.lookup(songKey), Seq.empty, ts)
+      def u(r: Ranking) = Some(r.song.key, r.ts)
+      def key(r: Ranking) = key(r.key)
+      def save(rs: Ranking*): Iterable[Keyed[Ranking]] = save(rs)
+    }
+    def save(r: Ranking) {
+      Song.save(r.song)
+      Player.save(r.records.map(_.player))
+      Datastore.withTx { tx =>
+        val Keyed(pk, _) = ps.save(r).head
+        Record.save(r.records, pk)
+        tx.commit
+      }
+    }
+  }
 
   def using[A <: { def close() }, B](resource: A)(f: A => B): B = {
     try {
@@ -87,24 +133,21 @@ object DivaacRank2 extends Log {
 
   def buildURL(key: String) = format("http://miku.sega.jp/arcade/ranking_%s.php", key)
 
-  case class RawRanking(key: String, songName: String, records: Seq[Map[Symbol, String]]) {
+  case class RawRanking(songKey: String, songName: String, records: Seq[Map[Symbol, String]]) {
     def map2Record(m: Map[Symbol, String]) = try {
-      val rankPat = """(\d+)位""".r
-      val song = Song(key, songName)
-      val rankPat(orderStr) = m('rank)
       val score = m('score).toLong
       val player = Player(m('name), m('level))
-      Some(Record(song, orderStr.toLong, score, player, m('date)))
+      Some(Record(score, player, m('date)))
     } catch {
       case e =>
         warn(format("record parse error. (%s)", m), e)
         None
     }
 
-    def toRanking: Ranking = {
-      val song = Song(key, songName)
-      Ranking(Song(key, songName), key, records flatMap(map2Record))
-    }
+    lazy val song = Song(songKey, songName)
+    private lazy val rankingTemplate = Ranking(song)
+    lazy val toRanking =
+      rankingTemplate.copy(records = this.records.flatMap(map2Record))
   }
 
   lazy val fetchRanking = Memoize1(fetchRankingImpl)

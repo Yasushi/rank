@@ -65,7 +65,7 @@ class Store2Specs extends Specification with util.HmsTimer {
   "save" should {
     doBefore{
       helper.setUp
-      memcacheService.put(buildURL(songKey), songSource)
+      memcacheService.put(('fetch, buildURL(songKey)), songSource)
     }
     doAfter{ helper.tearDown }
     "ranking" >> {
@@ -74,24 +74,23 @@ class Store2Specs extends Specification with util.HmsTimer {
       Ranking.save(r)
 
       val er = datastoreService.prepare(new Query("Ranking")).asSingleEntity
-      println(er)
+      //println(er)
       val err = datastoreService.prepare(new Query("Record", er.getKey)).asIterable
-      println(err.head)
+      //println(err.head)
       err.size must beEqual(300)
-      println(err.drop(102).take(3))
 
       import Query.FilterOperator._
       val playerKey = createKey("Player", "ふすぃみっちゃん__Lv 106 カンツォーナ")
       val r1 = datastoreService.prepare(new Query("Record", er.getKey).addFilter("player", EQUAL, playerKey)).asSingleEntity
 
-      println(r1)
+      //println(r1)
 
       val ps = datastoreService.prepare(new Query("Player")).asIterable
-      println(ps.head)
+      //println(ps.head)
       ps.size must beEqual(300)
 
       val song = datastoreService.prepare(new Query("Song")).asIterable
-      println(song.head)
+      //println(song.head)
       song.size must beEqual(1)
     }
     "ranking2" >> {
@@ -144,6 +143,20 @@ class Store2Specs extends Specification with util.HmsTimer {
 
       val json = Ranking.lookupAndToJSON(songKey, ranking.rankingDate)
       json must notBeNull;
+    }
+    "latest ranking" >> {
+      val Some(rr) = fetchRanking(songKey)
+      val r = rr.toRanking
+      Ranking.save(r)
+      val rts = asCalendar(r.ts)
+      rts += (java.util.Calendar.DATE, 1)
+      val r2 = r.copy(ts=rts.getTime)
+      Ranking.save(r2)
+
+      val latest = Ranking.lookupLatest(songKey)
+      latest must beLike {
+        case Some(l) => l.rankingDate must beEqual(rankingDate(rts.getTime))
+      }
     }
   }
 

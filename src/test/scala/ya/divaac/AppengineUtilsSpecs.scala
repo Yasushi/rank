@@ -23,7 +23,6 @@ class AppengineUtilsSpecs extends Specification {
       datastoreService.put(new Entity("Rank"))
       datastoreService.put(new Entity("Ranking"))
       val kinds = AppengineUtils.Datastore.getKinds
-      println(kinds)
       kinds must haveTheSameElementsAs(List("FetchDate", "Ranking", "Rank"))
     }
   }
@@ -47,7 +46,7 @@ class AppengineUtilsSpecs extends Specification {
 
     "memoize" in {
       def newMV(x: String) = MemcacheValue(x, Platform.currentTime.toString)
-      val memo = AppengineUtils.Memcache.Memoize1(newMV)
+      val memo = AppengineUtils.Memcache.Memoize1('specs, newMV)
 
       val v1 = memo("1")
       m.contains("1") must beTrue;
@@ -62,7 +61,7 @@ class AppengineUtilsSpecs extends Specification {
         case "none" => None
         case _ => Some(MemcacheValue(x, Platform.currentTime.toString))
       }
-      val memo = AppengineUtils.Memcache.Memoize1(newMV)
+      val memo = AppengineUtils.Memcache.Memoize1('spec, newMV)
 
       val Some(v1) = memo("1")
       m.contains("1") must beTrue;

@@ -22,7 +22,7 @@ class FetchSpecs extends Specification {
   "fetch" should {
     doBefore {
       helper.setUp
-      memcacheService.put(buildURL(songKey), songSource)
+      memcacheService.put(('fetch, buildURL(songKey)), songSource)
     }
     doAfter {helper.tearDown}
     "fetchRankingImpl" >> {
@@ -34,7 +34,7 @@ class FetchSpecs extends Specification {
     }
 
     "not found key" >> {
-      memcacheService.put(buildURL(songKey), "")
+      memcacheService.put(('fetch, buildURL(songKey)), "")
       fetch(buildURL(songKey)) must beEqual("")
       fetchRanking(songKey) must beNone
     }

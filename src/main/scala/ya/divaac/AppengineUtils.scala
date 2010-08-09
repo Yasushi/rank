@@ -70,9 +70,9 @@ object AppengineUtils {
       case s: Array[_] => !s.isEmpty
       case _ => true
     })
-    class Memoize1[-T, +R](f: T => R, expire: Expiration) extends (T => R) {
+    class Memoize1[-T, +R](base: Symbol, f: T => R, expire: Expiration) extends (T => R) {
       def apply(x: T): R ={
-        Option(memcacheService.get(x)) match {
+        Option(memcacheService.get((base, x))) match {
           case None => {
             val value = f(x)
             if (validValue(value))
@@ -84,9 +84,9 @@ object AppengineUtils {
       }
     }
     object Memoize1 {
-      def apply[T, R](f: T => R, expire: Expiration) = new Memoize1(f, expire)
-      def apply[T, R](f: T => R, expire: Int) = new Memoize1(f, byDeltaSeconds(expire))
-      def apply[T, R](f: T => R) = new Memoize1(f, defaultExpire)
+      def apply[T, R](base: Symbol, f: T => R, expire: Expiration) = new Memoize1(base, f, expire)
+      def apply[T, R](base: Symbol, f: T => R, expire: Int) = new Memoize1(base, f, byDeltaSeconds(expire))
+      def apply[T, R](base: Symbol, f: T => R) = new Memoize1(base, f, defaultExpire)
     }
     class Memoize0[-T, +R](f: => R, key: T, expire: Expiration) extends (() => R) {
       def apply(): R ={

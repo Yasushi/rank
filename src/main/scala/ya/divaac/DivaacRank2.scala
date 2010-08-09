@@ -9,6 +9,7 @@ import sage._
 import AppengineUtils.Memcache.{Memoize0, Memoize1}
 import AppengineUtils.Datastore
 import com.google.appengine.api.datastore.Key
+import com.google.appengine.api.datastore.DatastoreService
 
 object DivaacRank2 extends Log {
   implicit val datastoreService = AppengineUtils.Datastore.datastoreService
@@ -23,7 +24,7 @@ object DivaacRank2 extends Log {
     def key(name: String, level: String) = format("%s__%s", name, level)
     val keyPat = """(.*?)__(.*)""".r
 
-    lazy val lookup = Memoize1((lookupImpl _), 3 * 3600)
+    lazy val lookup = Memoize1('Player_lookup, (lookupImpl _), 3 * 3600)
     def lookupImpl(key: String) = ps lookup(ps.key(key)) map(_.value)
     def save(players: Seq[Player]) {
       ps.notStored(players) match {
@@ -51,6 +52,10 @@ object DivaacRank2 extends Log {
         Some(r.score, Player.ps.key(r.player), r.recordDate)
       def e(r: Record, order: Long, pk: Key) =
         keyedEntity(r, Datastore.keyById(kind, order, pk))
+      override def childrenOf(pk: Key)(implicit ds: DatastoreService) = {
+        find.query(qry => qry.setAncestor(pk)).query("__key__" asc).fetch(_.prefetchSize(300).chunkSize(300)).iterable
+      }
+
     }
 
     def save(rs: Seq[Record], pk: Key) = {
@@ -58,7 +63,7 @@ object DivaacRank2 extends Log {
         rs.sortBy(_.score * -1).zipWithIndex.map{case(r, i) => ps.e(r, i+1, pk)}
       datastoreService.put(asIterable(es))
     }
-    lazy val lookup = Memoize1(lookupImpl)
+    lazy val lookup = Memoize1('Record_lookup,lookupImpl)
     def lookupImpl(rankingKey: Key) = ps.childrenOf(rankingKey).map(_.value)
   }
   case class Song(key: String, name: String, ts: Date = new Date)
@@ -96,6 +101,10 @@ object DivaacRank2 extends Log {
       def u(r: Ranking) = Some(r.song.key, r.ts)
       def key(r: Ranking) = key(r.key)
       def save(rs: Ranking*): Iterable[Keyed[Ranking]] = save(rs)
+      def latest(songKey: String) = {
+        import dsl._
+        find.query("__key__" ?> key(songKey+"__")).query("__key__" desc).fetch(_.limit(1)).iterable.headOption
+      }
     }
     def save(r: Ranking) {
       Song.save(r.song)
@@ -106,15 +115,23 @@ object DivaacRank2 extends Log {
         tx.commit
       }
     }
-    lazy val lookup = Memoize1((lookupImpl _).tupled)
+    lazy val lookup = Memoize1('Ranking_lookup, (lookupImpl _).tupled)
     def lookupImpl(songKey: String, rankingDate: String) = {
       val key = ps.key(format("%s__%s", songKey, rankingDate))
       ps.lookup(key).map(_.value.copy(records = Record.lookup(key).toSeq))
     }
 
-    lazy val lookupAndToJSON = Memoize1((lookupAndToJSONImpl _).tupled)
+    lazy val lookupLatest = Memoize1('Ranking_lookupLatest, lookupLatestImpl)
+    def lookupLatestImpl(songKey: String) =
+      ps.latest(songKey).map(r => r.value.copy(records = Record.lookup(r.key).toSeq))
+
+    lazy val lookupAndToJSON = Memoize1('Ranking_lookupJson, (lookupAndToJSONImpl _).tupled)
     def lookupAndToJSONImpl(songKey: String, rankingDate: String) = {
       lookup(songKey, rankingDate) map(_.json) map(JSONLiteral.toString)
+    }
+    lazy val lookupLatestAndToJSON = Memoize1('Ranking_lookupLatestJson, lookupLatestAndToJSONImpl)
+    def lookupLatestAndToJSONImpl(songKey: String) = {
+      lookupLatest(songKey) map(_.json) map(JSONLiteral.toString)
     }
   }
 
@@ -126,7 +143,7 @@ object DivaacRank2 extends Log {
     }
   }
 
-  lazy val fetch = Memoize1(fetchImpl)
+  lazy val fetch = Memoize1('fetch, fetchImpl)
   def fetchImpl(url: String): String = {
     try {
       using(Source.fromInputStream(new URL(url).openStream, "Shift_JIS"))(_.mkString)
@@ -178,7 +195,7 @@ object DivaacRank2 extends Log {
       rankingTemplate.copy(records = this.records.flatMap(map2Record))
   }
 
-  lazy val fetchRanking = Memoize1(fetchRankingImpl)
+  lazy val fetchRanking = Memoize1('fetchRanking, fetchRankingImpl)
   def fetchRankingImpl(key: String): Option[RawRanking] = {
     try {
       def attrHasValue(ns: NodeSeq, a: String, v: String) =

@@ -8,8 +8,10 @@ object JSONLiteral {
   case class JSONObject(members: Map[String, JSONValue]) extends JSONValue
   case class JSONString(value: String) extends JSONValue
   case class JSONNumber(value: Double) extends JSONValue
+  case class JSONLong(value: Long) extends JSONValue
   case class JSONArray(members: List[JSONValue]) extends JSONValue
-  implicit def int2JSONNumber(value: Int) = JSONNumber(value)
+  implicit def int2JSONNumber(value: Int) = JSONLong(value)
+  implicit def long2JSONNumber(value: Long) = JSONLong(value)
   implicit def double2JSONNumber(value: Double) = JSONNumber(value)
   implicit def string2JSONString(value: String) = JSONString(value)
   def O(members: (String, JSONValue)*): JSONObject = JSONObject(Map(members:_*))
@@ -47,6 +49,7 @@ object JSONLiteral {
       .mkString("{", ",", "}")
       case JSONString(value) => "\"" + escape(value) + "\""
       case JSONArray(members) => members.map(toString(_)).mkString("[", ",", "]")
+      case JSONLong(value) => value.toString
       case JSONNumber(value) => value.toString
     }
   }

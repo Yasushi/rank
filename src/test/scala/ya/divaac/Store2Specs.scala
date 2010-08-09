@@ -14,7 +14,7 @@ import DivaacRank2._
 import KeyFactory._
 import DateUtils._
 
-class Store2Specs extends Specification {
+class Store2Specs extends Specification with util.HmsTimer {
   val helper = new LocalServiceTestHelper(
     new LocalMemcacheServiceTestConfig(),
     new LocalDatastoreServiceTestConfig()
@@ -92,6 +92,35 @@ class Store2Specs extends Specification {
 
       val song = datastoreService.prepare(new Query("Song")).asIterable
       println(song.head)
+      song.size must beEqual(1)
+    }
+    "ranking2" >> {
+      val Some(rr) = fetchRanking(songKey)
+      val r = rr.toRanking
+      start
+      Ranking.save(r)
+      printf("first save: %s\n", stop)
+      start
+      val rts = asCalendar(r.ts)
+      rts += (java.util.Calendar.DATE, 1)
+      val r2 = r.copy(ts=rts.getTime)
+      printf("copy: %s\n", stop)
+      start
+      Ranking.save(r2)
+      printf("second save: %s\n", stop)
+
+      val rs = datastoreService.prepare(new Query("Ranking")).asIterable
+      println(rs.toSeq)
+      rs.size must beEqual(2)
+      val rr1 = datastoreService.prepare(new Query("Record", rs.head.getKey)).asIterable
+      val rr2 = datastoreService.prepare(new Query("Record", rs.last.getKey)).asIterable
+      rr1.size must beEqual(300)
+      rr2.size must beEqual(300)
+
+      val ps = datastoreService.prepare(new Query("Player")).asIterable
+      ps.size must beEqual(300)
+
+      val song = datastoreService.prepare(new Query("Song")).asIterable
       song.size must beEqual(1)
     }
   }

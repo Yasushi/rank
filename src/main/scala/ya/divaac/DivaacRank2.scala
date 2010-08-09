@@ -32,7 +32,16 @@ object DivaacRank2 extends Log {
       }
     }
   }
-  case class Record(score: Long, player: Player, recordDate: String)
+  case class Record(score: Long, player: Player, recordDate: String) {
+    def json(order: Int) = {
+      import JSONLiteral._
+      O("name" -> player.name,
+        "rank" -> order,
+        "score" -> score,
+        "date" -> recordDate,
+        "level" -> player.level)
+    }
+  }
   object Record {
     object ps extends Base[Record]("Record") {
       def * = "score".propNi[Long] :: "player".prop[Key] :: "recordDate".propNi[String] >< ((a _) <-> u)
@@ -67,6 +76,16 @@ object DivaacRank2 extends Log {
                      ts: Date = new Date) {
     lazy val rankingDate = DateUtils.rankingDate(ts)
     lazy val key = format("%s__%s", song.key, rankingDate)
+
+    lazy val json = {
+      import JSONLiteral._
+      O("songKey" -> song.key,
+        "songName" -> song.name,
+        "rankingDate" -> rankingDate,
+        "records" ->
+          A(records.zipWithIndex.map{case(r, i) => r.json(i+1)}:_*)
+      )
+    }
   }
   object Ranking {
     object ps extends DBase[Ranking]("Ranking") {
@@ -91,6 +110,11 @@ object DivaacRank2 extends Log {
     def lookupImpl(songKey: String, rankingDate: String) = {
       val key = ps.key(format("%s__%s", songKey, rankingDate))
       ps.lookup(key).map(_.value.copy(records = Record.lookup(key).toSeq))
+    }
+
+    lazy val lookupAndToJSON = Memoize1((lookupAndToJSONImpl _).tupled)
+    def lookupAndToJSONImpl(songKey: String, rankingDate: String) = {
+      lookup(songKey, rankingDate) map(_.json) map(JSONLiteral.toString)
     }
   }
 

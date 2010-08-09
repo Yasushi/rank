@@ -137,7 +137,16 @@ class Store2Specs extends Specification with util.HmsTimer {
           r.records must beEqual(ranking.records)
       }
     }
+    "lookup and to json" >> {
+      val Some(rr) = fetchRanking(songKey)
+      val ranking = rr.toRanking
+      Ranking.save(ranking)
+
+      val json = Ranking.lookupAndToJSON(songKey, ranking.rankingDate)
+      json must notBeNull;
+    }
   }
+
 
   "entity spec" should {
     skip("LLAPIの確認用")

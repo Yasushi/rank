@@ -33,13 +33,13 @@ object JSONLiteral {
     '\\' -> '\\', '\'' -> '\'', '\"' -> '\"', '\b' -> 'b')
   def toString(jsonObject: JSONValue): String = {
     def escape(content: String): String = {
-      content.foldLeft(new StringBuffer){(buf, ch) =>
+      content.foldLeft(new java.lang.StringBuilder){(buf, ch) =>
         ch match {
           case ch if escapeMap.contains(ch) =>
             buf.append("\\"); buf.append(escapeMap(ch))
           case ch => buf.append(ch)
         }
-                                       }.toString
+      }.toString
     }
     jsonObject match {
       case JSONObject(members) =>

@@ -22,12 +22,8 @@ object DivaacRank2 extends Log {
     }
     def key(name: String, level: String) = format("%s__%s", name, level)
     val keyPat = """(.*?)__(.*)""".r
-    def decodeKey(key: String) = key match {
-      case keyPat(name, level) => Some(Player(name, level))
-      case _ => None
-    }
 
-    lazy val lookup = Memoize1(lookupImpl)
+    lazy val lookup = Memoize1((lookupImpl _), 3 * 3600)
     def lookupImpl(key: String) = ps lookup(ps.key(key)) map(_.value)
     def save(players: Seq[Player]) {
       ps.notStored(players) match {
@@ -41,7 +37,7 @@ object DivaacRank2 extends Log {
     object ps extends Base[Record]("Record") {
       def * = "score".propNi[Long] :: "player".prop[Key] :: "recordDate".propNi[String] >< ((a _) <-> u)
       def a(score: Long, player: Key, recordDate: String) =
-        Record(score, Player.decodeKey(player.getName).get, recordDate)
+        Record(score, Player.lookup(player.getName).get, recordDate)
       def u(r: Record) =
         Some(r.score, Player.ps.key(r.player), r.recordDate)
       def e(r: Record, order: Long, pk: Key) =
@@ -53,6 +49,8 @@ object DivaacRank2 extends Log {
         rs.sortBy(_.score * -1).zipWithIndex.map{case(r, i) => ps.e(r, i+1, pk)}
       datastoreService.put(asIterable(es))
     }
+    lazy val lookup = Memoize1(lookupImpl)
+    def lookupImpl(rankingKey: Key) = ps.childrenOf(rankingKey).map(_.value)
   }
   case class Song(key: String, name: String, ts: Date = new Date)
   object Song {
@@ -72,6 +70,7 @@ object DivaacRank2 extends Log {
   }
   object Ranking {
     object ps extends DBase[Ranking]("Ranking") {
+      import dsl._
       def * = "song".prop[String] :: "ts".prop[Date] >< ((a _) <-> u)
       def a(songKey: String, ts: Date) =
         Ranking(Song.lookup(songKey), Seq.empty, ts)
@@ -87,6 +86,11 @@ object DivaacRank2 extends Log {
         Record.save(r.records, pk)
         tx.commit
       }
+    }
+    lazy val lookup = Memoize1((lookupImpl _).tupled)
+    def lookupImpl(songKey: String, rankingDate: String) = {
+      val key = ps.key(format("%s__%s", songKey, rankingDate))
+      ps.lookup(key).map(_.value.copy(records = Record.lookup(key).toSeq))
     }
   }
 

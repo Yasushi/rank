@@ -110,7 +110,6 @@ class Store2Specs extends Specification with util.HmsTimer {
       printf("second save: %s\n", stop)
 
       val rs = datastoreService.prepare(new Query("Ranking")).asIterable
-      println(rs.toSeq)
       rs.size must beEqual(2)
       val rr1 = datastoreService.prepare(new Query("Record", rs.head.getKey)).asIterable
       val rr2 = datastoreService.prepare(new Query("Record", rs.last.getKey)).asIterable
@@ -123,10 +122,25 @@ class Store2Specs extends Specification with util.HmsTimer {
       val song = datastoreService.prepare(new Query("Song")).asIterable
       song.size must beEqual(1)
     }
+    "ranking read write" >> {
+      val Some(rr) = fetchRanking(songKey)
+      val ranking = rr.toRanking
+      Ranking.save(ranking)
+
+      start
+      val ret = Ranking.lookup(songKey, ranking.rankingDate)
+      printf("lookup: %s\n", stop)
+      ret must beLike {
+        case Some(r) =>
+          r.song.key must beEqual(songKey)
+          r.ts must beEqual(ranking.ts)
+          r.records must beEqual(ranking.records)
+      }
+    }
   }
 
   "entity spec" should {
-    skip("")
+    skip("LLAPIの確認用")
     doBefore{helper.setUp}
     doAfter{ helper.tearDown }
     val ds = datastoreService

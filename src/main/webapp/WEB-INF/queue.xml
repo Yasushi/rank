@@ -6,6 +6,6 @@
   <queue>
     <name>fetch</name>
     <rate>6/m</rate>
-    <bucket-size>2</bucket-size>
+    <bucket-size>1</bucket-size>
   </queue>
 </queue-entries>

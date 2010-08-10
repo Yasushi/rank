@@ -118,8 +118,11 @@ object DivaacRank2 extends Log {
       def * = "key".propNi[String] :: "name".propNi[String] :: "ts".prop[Date] >< ((Song.apply _) <-> Song.unapply)
       def key(s: Song) = key(s.key)
     }
-    def all = Memoize0(allImpl, "SongAll", 12 * 3600)()
+    lazy val all = Memoize0(allImpl, "SongAll")
     def allImpl = ps.toMap(ps.find.iterable)
+    lazy val allToJson = Memoize0(allToJsonImpl, "SongAllJson")
+    def allToJsonImpl =
+      Some(JSONLiteral.toString(JSONLiteral.A(all().values.map(_.json).toSeq:_*)))
     lazy val lookup = Memoize1('Song_lookup, lookupImpl)
     def lookupImpl(key: String) = ps.lookup(ps.key(key)).map(_.value)
     def save(songs: Song*) = ps.save(songs)

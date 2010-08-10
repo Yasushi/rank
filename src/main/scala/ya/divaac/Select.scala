@@ -20,7 +20,10 @@ class Select extends HttpServlet {
         }
         case Some("player" :: name :: opts) =>
           log(format("player: %s opts: %s", name, opts))
-        printJSON(Player.findRecordsByNameToJson(name, opts.headOption.getOrElse(DateUtils.rankingDate())), req, resp)
+          printJSON(Player.findRecordsByNameToJson(name, opts.headOption.getOrElse(DateUtils.rankingDate())), req, resp)
+        case Some("songlist" :: Nil) =>
+          log("songlist")
+          printJSON(Song.allToJson(), req, resp)
         case _ =>
           resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
       }

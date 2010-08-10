@@ -20,9 +20,11 @@ object DivaacRank2 extends Log {
     object ps extends DBase[Player]("Player") {
       def * = "name".prop[String] :: "level".propNi[String] :: "ts".prop[Date] >< ((Player.apply _) <-> Player.unapply)
       def key(p: Player) = key(p.key)
+      def lookupByName(name: String) = {
+        find.query("name" ?== name).query("ts" desc).fetch(_.limit(1)).iterable.headOption
+      }
     }
-    def key(name: String, level: String) = format("%s__%s", name, level)
-    val keyPat = """(.*?)__(.*)""".r
+    def key(name: String, level: String) = format("%s|%s", name, level)
 
     lazy val lookup = Memoize1('Player_lookup, (lookupImpl _), 3 * 3600)
     def lookupImpl(key: String) = ps lookup(ps.key(key)) map(_.value)
@@ -32,8 +34,17 @@ object DivaacRank2 extends Log {
         case notStored => ps.save(notStored)
       }
     }
+
+    def findRecordsByName(name: String, rankingDate: String = DateUtils.rankingDate()): Iterable[Record] = {
+      ps.lookupByName(name) match {
+        case None => None
+        case Some(Keyed(key, p)) =>
+          val rks = Ranking.ps.keysByDate(rankingDate)
+          Record.ps.findByPlayer(key, rks)
+      }
+    }
   }
-  case class Record(score: Long, player: Player, recordDate: String) {
+  case class Record(score: Long, player: Player, recordDate: String, order: Option[Long] = None, song: Option[Song] = None) {
     def json(order: Int) = {
       import JSONLiteral._
       O("name" -> player.name,
@@ -53,9 +64,18 @@ object DivaacRank2 extends Log {
       def e(r: Record, order: Long, pk: Key) =
         keyedEntity(r, Datastore.keyById(kind, order, pk))
       override def childrenOf(pk: Key)(implicit ds: DatastoreService) = {
-        find.query(qry => qry.setAncestor(pk)).query("__key__" asc).fetch(_.prefetchSize(300).chunkSize(300)).iterable
+        find.query(_.setAncestor(pk)).query("__key__" asc).fetch(_.prefetchSize(300).chunkSize(300)).iterable
       }
-
+      def fromKeyed(k: Keyed[Record]) = {
+        val order = k.key.getId
+        val Some((song, _)) = Ranking.decodeKey(k.key.getParent.getName)
+        k.value.copy(order=Some(order), song=Some(song))
+      }
+      def findByPlayer(player: Key, rankings: Iterable[Key]): Iterable[Record] = {
+        (for (rk <- rankings) yield
+          find.query("player" ?== player).query(_.setAncestor(rk)).iterable
+        ).flatten.map(fromKeyed)
+      }
     }
 
     def save(rs: Seq[Record], pk: Key) = {
@@ -94,7 +114,6 @@ object DivaacRank2 extends Log {
   }
   object Ranking {
     object ps extends DBase[Ranking]("Ranking") {
-      import dsl._
       def * = "song".prop[String] :: "ts".prop[Date] >< ((a _) <-> u)
       def a(songKey: String, ts: Date) =
         Ranking(Song.lookup(songKey), Seq.empty, ts)
@@ -102,19 +121,33 @@ object DivaacRank2 extends Log {
       def key(r: Ranking) = key(r.key)
       def save(rs: Ranking*): Iterable[Keyed[Ranking]] = save(rs)
       def latest(songKey: String) = {
-        import dsl._
         find.query("__key__" ?> key(songKey+"__")).query("__key__" desc).fetch(_.limit(1)).iterable.headOption
+      }
+      lazy val keysByDate = Memoize1('Ranking_ps_keysByDate, keysByDateImpl)
+      def keysByDateImpl(rankingDate: String = DateUtils.rankingDate()) = {
+        DateUtils.parseRankingDate(rankingDate).map(DateUtils.range) match {
+          case Some((start, end)) =>
+            find.query("ts" ?> start).query("ts" ?< end).fetch(_.prefetchSize(200).chunkSize(200)).keys
+          case _ =>
+            Seq.empty
+        }
       }
     }
     def save(r: Ranking) {
       Song.save(r.song)
       Player.save(r.records.map(_.player))
       Datastore.withTx { tx =>
-        val Keyed(pk, _) = ps.save(r).head
+        val Some(Keyed(pk, _)) = ps.lookup(ps.key(r)) orElse ps.save(r).headOption
         Record.save(r.records, pk)
         tx.commit
       }
     }
+    lazy val RANKING_KEY_PAT = """(.*)__(\d+)""".r
+    def decodeKey(key: String) = key match {
+      case RANKING_KEY_PAT(song, date) => Some(Song.lookup(song), date)
+      case _ => None
+    }
+
     lazy val lookup = Memoize1('Ranking_lookup, (lookupImpl _).tupled)
     def lookupImpl(songKey: String, rankingDate: String) = {
       val key = ps.key(format("%s__%s", songKey, rankingDate))

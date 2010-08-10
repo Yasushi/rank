@@ -32,11 +32,16 @@ class CalendarW(val c: Calendar = Calendar.getInstance) {
     this
   }
   def truncate = {
-    update(HOUR, 0)
+    update(HOUR_OF_DAY, 0)
     update(MINUTE, 0)
     update(SECOND, 0)
     update(MILLISECOND, 0)
     this
+  }
+
+  def normalize() = {
+    c.add(Calendar.HOUR_OF_DAY, -12)
+    truncate
   }
 }
 
@@ -47,15 +52,32 @@ object DateUtils {
   implicit def asCalendar(d: Date): Calendar =
     Calendar.getInstance.setTZ(JST).setDate(d)
 
+  val RANKING_DATE_PAT = """(\d{4})(\d{2})(\d{2})""".r
+
   def asCalendar(amounts: Int*): Calendar =
     Calendar.getInstance.setTZ(JST).setAll(amounts:_*)
 
   def rankingId(d: Date = new Date) = rankingDate(d)
   def rankingDate(d: Date = new Date) = {
     val c = asCalendar(d)
-    c -= (Calendar.HOUR_OF_DAY, 12)
-    c.truncate
+    c.normalize()
     format("%tY%<tm%<td", c)
+  }
+  def parseRankingDate(s: String) = {
+    s match {
+      case RANKING_DATE_PAT(y, m, d) => Some(asCalendar(y.toInt, m.toInt, d.toInt, 12).getTime)
+      case _ => None
+    }
+  }
+
+  def range(d: Date = new Date): (Date, Date) = {
+    val c = asCalendar(d)
+    c.normalize()
+    c += (Calendar.HOUR_OF_DAY, 12)
+    val start = c.getTime
+    c += (Calendar.DATE, 1)
+    val end = c.getTime
+    (start, end)
   }
 
 }

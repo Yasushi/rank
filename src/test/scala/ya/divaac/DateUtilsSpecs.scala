@@ -83,6 +83,20 @@ class DateUtilsSpecs extends Specification {
         case (2010, 9, 5, 0, 0, 0, 0) => true
       }
     }
+    "normalize" >> {
+      new CalendarW().setAll(2010, 9, 5, 14, 30).normalize().getAll must beLike {
+        case (2010, 9, 5, 0, 0, 0, 0) => true
+      }
+      new CalendarW().setAll(2010, 9, 5, 12, 0).normalize().getAll must beLike {
+        case (2010, 9, 5, 0, 0, 0, 0) => true
+      }
+      new CalendarW().setAll(2010, 9, 5, 11, 59).normalize().getAll must beLike {
+        case (2010, 9, 4, 0, 0, 0, 0) => true
+      }
+      new CalendarW().setAll(2010, 9, 5).normalize().getAll must beLike {
+        case (2010, 9, 4, 0, 0, 0, 0) => true
+      }
+    }
   }
 
   "DateUtils" should {
@@ -92,13 +106,39 @@ class DateUtilsSpecs extends Specification {
         case (2010, 9, 5, 14, 30, 30, 30) => true
       }
     }
-    "rankingId" in {
+    "rankingDate" in {
       import DateUtils._
       implicit def cal2date(c: Calendar) = c.getTime
-      rankingId(asCalendar(2010, 9, 5, 14, 30)) must beEqual("20100905")
-      rankingId(asCalendar(2010, 9, 5, 12, 00)) must beEqual("20100905")
-      rankingId(asCalendar(2010, 9, 5, 11, 59)) must beEqual("20100904")
-      rankingId(asCalendar(2010, 9, 5,  0,  0)) must beEqual("20100904")
+      rankingDate(asCalendar(2010, 9, 5, 14, 30)) must beEqual("20100905")
+      rankingDate(asCalendar(2010, 9, 5, 12, 00)) must beEqual("20100905")
+      rankingDate(asCalendar(2010, 9, 5, 11, 59)) must beEqual("20100904")
+      rankingDate(asCalendar(2010, 9, 5,  0,  0)) must beEqual("20100904")
+    }
+    "range" >> {
+      import DateUtils._
+      implicit def cal2date(c: Calendar) = c.getTime
+      def s(d: Date):String = format("%tY%<tm%<td%<tH%<tM", d)
+      range(asCalendar(2010, 9, 5, 14, 30)) must beLike {
+        case (start, end) =>
+          s(start) must beEqual("201009051200")
+          s(end)   must beEqual("201009061200")
+      }
+      range(asCalendar(2010, 9, 5, 12, 00)) must beLike {
+        case (start, end) =>
+          s(start) must beEqual("201009051200")
+          s(end)   must beEqual("201009061200")
+      }
+      range(asCalendar(2010, 9, 5, 11, 59)) must beLike {
+        case (start, end) =>
+          s(start) must beEqual("201009041200")
+          s(end)   must beEqual("201009051200")
+      }
+      range(asCalendar(2010, 9, 5,  0,  0)) must beLike {
+        case (start, end) =>
+          s(start) must beEqual("201009041200")
+          s(end)   must beEqual("201009051200")
+      }
+
     }
   }
 }

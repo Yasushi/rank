@@ -33,9 +33,9 @@ class Store2Specs extends Specification with util.HmsTimer {
     "save" >> {
       val p = Player("name", "lv")
       Player.save(Seq(p))
-      val e = datastoreService.get(createKey("Player", "name__lv"))
+      val e = datastoreService.get(createKey("Player", "name|lv"))
       e must notBeNull;
-      e.getKey.getName must beEqual("name__lv")
+      e.getKey.getName must beEqual("name|lv")
       e.property[String]("name") must beEqual(Some("name"))
       e.property[String]("level") must beEqual(Some("lv"))
       e.isUnindexedProperty("level") must beTrue;
@@ -80,7 +80,7 @@ class Store2Specs extends Specification with util.HmsTimer {
       err.size must beEqual(300)
 
       import Query.FilterOperator._
-      val playerKey = createKey("Player", "ふすぃみっちゃん__Lv 106 カンツォーナ")
+      val playerKey = createKey("Player", "ふすぃみっちゃん|Lv 106 カンツォーナ")
       val r1 = datastoreService.prepare(new Query("Record", er.getKey).addFilter("player", EQUAL, playerKey)).asSingleEntity
 
       //println(r1)
@@ -94,6 +94,7 @@ class Store2Specs extends Specification with util.HmsTimer {
       song.size must beEqual(1)
     }
     "ranking2" >> {
+      skip("slow")
       val Some(rr) = fetchRanking(songKey)
       val r = rr.toRanking
       start
@@ -157,6 +158,17 @@ class Store2Specs extends Specification with util.HmsTimer {
       latest must beLike {
         case Some(l) => l.rankingDate must beEqual(rankingDate(rts.getTime))
       }
+    }
+    "find by player" >> {
+      val Some(rr) = fetchRanking(songKey)
+      val r = rr.toRanking
+      Ranking.save(r)
+
+      val name = "ふすぃみっちゃん"
+
+      val rs = Player.findRecordsByName(name, r.rankingDate)
+      rs.size must beEqual(1)
+      rs.head.player.name must beEqual(name)
     }
   }
 

@@ -1,67 +1,19 @@
 package ya.divaac
 
 import javax.servlet.http._
-import com.google.appengine.api.memcache._
 
-object Util {
-  val memcache = MemcacheServiceFactory.getMemcacheService
-
-  def memoB(key: String, expire: Int = 600)(f: => Boolean) =
-    memo(key, expire)(_ => f.toString).toBoolean
-
-  def memo(key: String, expire: Int = 600)(f: String => String) =
-    Option(memcache.get(key)) match {
-      case Some(value) => value.toString
-      case None => {
-        val value = f(key)
-        if (Option(value).exists(_.length > 5))
-          memcache.put(key, value, Expiration.byDeltaSeconds(expire))
-        value
-      }
-    }
-
-  def printJSON(json: String, req: HttpServletRequest, resp: HttpServletResponse) {
-    Option(req.getParameter("callback")) match {
-      case None => {
-        resp.setContentType("text/json")
-        resp.setCharacterEncoding("UTF-8")
-        resp.getWriter.print(json)
-      }
-      case Some(callback) => {
-        resp.setContentType("text/javascript")
-        resp.setCharacterEncoding("UTF-8")
-        resp.getWriter.print(format("%s(%s)", callback, json))
-      }
-    }
-    resp.getWriter.flush
-    resp.getWriter.close
-  }
-
-  val noPat = """\d+""".r
-  val diffPat = """hard|extreme""".r
-
-}
+import AppengineUtils.Memcache._
+import Utils._
 
 class Serve extends HttpServlet {
-  import DivaacRank._
-  import Util._
-  def fetchRanksJson(s: String) = {
-    assert(!s.isEmpty)
-    log("key: " +s)
-    def src = memo(s, 3600)((buildURL _) andThen fetch)
-    memo("json/"+s, 600)(_ => parse(src).map(json).getOrElse(""))
-  }
+  lazy val fetch = Memoize1('Serve_fetch, (fetchImpl _), 600)
+  def fetchImpl(key: String) =
+    DivaacRank2.fetchRanking(key).map(_.toRanking).map(_.json).map(JSONLiteral.toString)
 
   override def doGet(req: HttpServletRequest, resp: HttpServletResponse) {
-    req.getPathInfo match {
-      case key if key != null && key.length > 1 => {
-        fetchRanksJson(key.drop(1)) match {
-          case json if json.isEmpty =>
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
-          case json =>
-            printJSON(json, req, resp)
-        }
-      }
+    Option(req.getPathInfo).map(_.stripPrefix("/")) match {
+      case Some(key) if key != null && key.length > 1 =>
+        printJSON(fetch(key), req, resp)
       case _ =>
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
     }

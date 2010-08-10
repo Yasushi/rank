@@ -46,11 +46,11 @@ class AppengineUtilsSpecs extends Specification {
 
     "memoize" in {
       def newMV(x: String) = MemcacheValue(x, Platform.currentTime.toString)
-      val memo = AppengineUtils.Memcache.Memoize1('specs, newMV)
+      val memo = AppengineUtils.Memcache.Memoize1('spec, newMV)
 
       val v1 = memo("1")
-      m.contains("1") must beTrue;
-      m.get("1") must beLike {
+      m.contains(('spec, "1")) must beTrue;
+      m.get(('spec, "1")) must beLike {
         case MemcacheValue("1", y) if y == v1.y => true
       }
       newMV("1") must notBe(v1)
@@ -64,8 +64,8 @@ class AppengineUtilsSpecs extends Specification {
       val memo = AppengineUtils.Memcache.Memoize1('spec, newMV)
 
       val Some(v1) = memo("1")
-      m.contains("1") must beTrue;
-      m.get("1") must beLike {
+      m.contains(('spec, "1")) must beTrue;
+      m.get(('spec, "1")) must beLike {
         case Some(MemcacheValue("1", y)) if y == v1.y => true
       }
       newMV("1") must notBe(v1)

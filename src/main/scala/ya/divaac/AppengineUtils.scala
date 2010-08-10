@@ -74,12 +74,15 @@ object AppengineUtils {
       def apply(x: T): R ={
         Option(memcacheService.get((base, x))) match {
           case None => {
+            printf("cache none. base: %s, arg: %s\n", base, x)
             val value = f(x)
             if (validValue(value))
-              memcacheService.put(x, value, expire)
+              memcacheService.put((base, x), value, expire)
             value
           }
-          case Some(value) => value.asInstanceOf[R]
+          case Some(value) =>
+            printf("cached. base: %s, arg: %s\n", base, x)
+            value.asInstanceOf[R]
         }
       }
     }

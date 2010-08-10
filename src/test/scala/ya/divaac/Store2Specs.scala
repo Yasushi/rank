@@ -134,7 +134,10 @@ class Store2Specs extends Specification with util.HmsTimer {
         case Some(r) =>
           r.song.key must beEqual(songKey)
           r.ts must beEqual(ranking.ts)
-          r.records must beEqual(ranking.records)
+          r.records.map(_.score) must beEqual(ranking.records.map(_.score))
+          r.records.map(_.recordDate) must beEqual(ranking.records.map(_.recordDate))
+          r.records.map(_.player.name) must beEqual(ranking.records.map(_.player.name))
+          r.records.map(_.player.level) must beEqual(ranking.records.map(_.player.level))
       }
     }
     "lookup and to json" >> {
@@ -142,7 +145,10 @@ class Store2Specs extends Specification with util.HmsTimer {
       val ranking = rr.toRanking
       Ranking.save(ranking)
 
+      start
       val json = Ranking.lookupAndToJSON(songKey, ranking.rankingDate)
+      stop
+      printf("lookupAndToJSON: %d ms\n", elapsed)
       json must notBeNull;
     }
     "latest ranking" >> {

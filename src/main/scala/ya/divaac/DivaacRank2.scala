@@ -78,8 +78,7 @@ object DivaacRank2 extends Log {
     object ps extends Base[Record]("Record") {
       def * = "score".propNi[Long] :: "player".prop[Key] :: "recordDate".propNi[String] >< ((a _) <-> u)
       def a(score: Long, playerKey: Key, recordDate: String) = {
-        val p = (Player.lookup(playerKey.getName) orElse Player.decodeKey(playerKey.getName)).get
-        Record(score, p, recordDate)
+        Record(score, Player.decodeKey(playerKey.getName).get, recordDate)
       }
       def u(r: Record) =
         Some(r.score, Player.ps.key(r.player), r.recordDate)

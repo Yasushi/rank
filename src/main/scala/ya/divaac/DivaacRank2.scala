@@ -35,6 +35,11 @@ object DivaacRank2 extends Log {
       }
     }
 
+    lazy val findRecordsByNameToJson = Memoize1('Player_findRecordsByNameToJson, (findRecordsByNameToJsonImpl _).tupled)
+    def findRecordsByNameToJsonImpl(name: String, rankingDate: String = DateUtils.rankingDate()) = {
+      import JSONLiteral._
+      Some(JSONLiteral.toString(A(findRecordsByName(name, rankingDate).toSeq.map(_.json):_*)))
+    }
     def findRecordsByName(name: String, rankingDate: String = DateUtils.rankingDate()): Iterable[Record] = {
       ps.lookupByName(name) match {
         case None => None
@@ -51,7 +56,16 @@ object DivaacRank2 extends Log {
         "rank" -> order,
         "score" -> score,
         "date" -> recordDate,
-        "level" -> player.level)
+        "level" -> A(player.level.split("\\p{javaWhitespace}", 3).map(string2JSONString):_*))
+    }
+    def json = {
+      import JSONLiteral._
+      O("song" -> song.map(_.json).getOrElse(""),
+        "name" -> player.name,
+        "rank" -> order.mkString,
+        "score" -> score,
+        "date" -> recordDate,
+        "level" -> A(player.level.split("\\p{javaWhitespace}", 3).map(string2JSONString):_*))
     }
   }
   object Record {
@@ -86,7 +100,12 @@ object DivaacRank2 extends Log {
     lazy val lookup = Memoize1('Record_lookup,lookupImpl)
     def lookupImpl(rankingKey: Key) = ps.childrenOf(rankingKey).map(_.value)
   }
-  case class Song(key: String, name: String, ts: Date = new Date)
+  case class Song(key: String, name: String, ts: Date = new Date) {
+    def json = {
+      import JSONLiteral._
+      O("key" -> key, "name" -> name)
+    }
+  }
   object Song {
     object ps extends DBase[Song]("Song") {
       def * = "key".propNi[String] :: "name".propNi[String] :: "ts".prop[Date] >< ((Song.apply _) <-> Song.unapply)

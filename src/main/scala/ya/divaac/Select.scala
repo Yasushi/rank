@@ -3,41 +3,48 @@ package ya.divaac
 import javax.servlet.http._
 
 class Select extends HttpServlet {
-  import DivaacRank._
-  import Util._
+  import DivaacRank2._
+
+  def printJSON(json: Option[String],
+                req: HttpServletRequest, resp: HttpServletResponse) {
+    json match {
+      case None =>
+        resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
+      case Some(j) =>
+        Option(req.getParameter("callback")) match {
+          case None => {
+            resp.setContentType("text/json")
+            resp.setCharacterEncoding("UTF-8")
+            resp.getWriter.print(j)
+          }
+          case Some(callback) => {
+            resp.setContentType("text/javascript")
+            resp.setCharacterEncoding("UTF-8")
+            resp.getWriter.print(format("%s(%s)", callback, j))
+          }
+        }
+        resp.getWriter.flush
+        resp.getWriter.close
+    }
+  }
 
   override def doGet(req: HttpServletRequest, resp: HttpServletResponse) {
-    Option(req.getPathInfo).map(_.stripPrefix("/").split("/")) match {
-      case Some(Array(no@noPat(), diff@diffPat())) => {
-        val key = no + "/" + diff
-        log("key: " + key)
-        val j = memo("s/json/" + key, 1800)(_ => Persist.findBySong(no, diff).map(json).getOrElse(""))
-        printJSON(j, req, resp)
-      }
-      case Some(Array(no@noPat(), diff@diffPat(), rankingId)) => {
-        val key = format("%s/%s/%s", no, diff, rankingId)
-        log("key: " + key)
-        val j = memo("s/json/" + key, 1800)(_ => Persist.findBySong(no, diff, rankingId).map(json).getOrElse(""))
-        printJSON(j, req, resp)
-      }
-      case Some(Array("p", player)) => {
-        log("player: " + player)
-        val j = memo("s/json/p/" + player, 600)(_ => json(Persist.findByPlayer(player)))
-        printJSON(j, req, resp)
-      }
-      case Some(Array("p", player, no@noPat(), diff@diffPat())) => {
-        log(format("player: %s, songNo: %s, difficulty: %s", player, no, diff))
-        val j = memo(format("s/json/p/%s/%s/%s", player, no, diff), 1800)(_ => json(Persist.findByPlayerAndSong(player, no, diff)))
-        printJSON(j, req, resp)
-      }
-      case Some(Array("p", player, rankingId)) => {
-        log(format("player: %s, rankingId: %s", player, rankingId))
-        val j = memo(format("s/json/p/%s/%s", player, rankingId), 1800)(_ => json(Persist.findByPlayerAndRankingId(player, rankingId)))
-        printJSON(j, req, resp)
-      }
+    Option(req.getPathInfo).map(_.stripPrefix("/").split("/").toList) match {
+      case Some("song" :: songKey :: opts) =>
+        log(format("songKey: %s opts: %s", songKey, opts))
+        opts.headOption match {
+          case Some(rankingDate) =>
+            printJSON(Ranking.lookupAndToJSON(songKey, rankingDate), req, resp)
+          case None =>
+            printJSON(Ranking.lookupLatestAndToJSON(songKey), req, resp)
+        }
+      case Some("player" :: name :: opts) =>
+        log(format("player: %s opts: %s", name, opts))
+        printJSON(Player.findRecordsByNameToJson(name, opts.headOption.getOrElse(DateUtils.rankingDate())), req, resp)
       case _ =>
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT)
     }
+    log(format("done. %s", req.getPathInfo))
   }
 
 }

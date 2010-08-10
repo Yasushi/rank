@@ -120,7 +120,8 @@ object DivaacRank2 extends Log {
     }
     def all = Memoize0(allImpl, "SongAll", 12 * 3600)()
     def allImpl = ps.toMap(ps.find.iterable)
-    def lookup(key: String) = all(key)
+    lazy val lookup = Memoize1('Song_lookup, lookupImpl)
+    def lookupImpl(key: String) = ps.lookup(ps.key(key)).map(_.value)
     def save(songs: Song*) = ps.save(songs)
   }
   case class Ranking(song: Song, records: Seq[Record] = Seq.empty,
@@ -142,12 +143,12 @@ object DivaacRank2 extends Log {
     object ps extends DBase[Ranking]("Ranking") {
       def * = "song".prop[String] :: "ts".prop[Date] >< ((a _) <-> u)
       def a(songKey: String, ts: Date) =
-        Ranking(Song.lookup(songKey), Seq.empty, ts)
+        Ranking(Song.lookup(songKey).getOrElse(Song(songKey, "")), Seq.empty, ts)
       def u(r: Ranking) = Some(r.song.key, r.ts)
       def key(r: Ranking) = key(r.key)
       def save(rs: Ranking*): Iterable[Keyed[Ranking]] = save(rs)
       def latest(songKey: String) = {
-        find.query("__key__" ?> key(songKey+"__")).query("__key__" desc).fetch(_.limit(1)).iterable.headOption
+        find.query("__key__" ?> key(songKey+"__2")).query("__key__" ?< key(songKey+"__3")).query("__key__" desc).fetch(_.limit(1)).iterable.headOption
       }
       lazy val keysByDate = Memoize1('Ranking_ps_keysByDate, keysByDateImpl)
       def keysByDateImpl(rankingDate: String = DateUtils.rankingDate()) = {
@@ -170,7 +171,7 @@ object DivaacRank2 extends Log {
     }
     lazy val RANKING_KEY_PAT = """(.*)__(\d+)""".r
     def decodeKey(key: String) = key match {
-      case RANKING_KEY_PAT(song, date) => Some(Song.lookup(song), date)
+      case RANKING_KEY_PAT(song, date) => Some(Song.lookup(song).getOrElse(Song(song, "")), date)
       case _ => None
     }
 

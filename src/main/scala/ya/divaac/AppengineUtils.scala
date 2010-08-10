@@ -64,12 +64,14 @@ object AppengineUtils {
     import Expiration._
     val defaultExpire = byDeltaSeconds(6 * 3600)
 
-    def validValue[R](value: R) = value != null && (value match {
+    def validValue[R](value: R) = value match {
+      case null => false
+      case None => false
       case s: String => !s.isEmpty
       case s: Seq[_] => !s.isEmpty
       case s: Array[_] => !s.isEmpty
       case _ => true
-    })
+    }
     class Memoize1[-T, +R](base: Symbol, f: T => R, expire: Expiration) extends (T => R) {
       def apply(x: T): R ={
         Option(memcacheService.get((base, x))) match {

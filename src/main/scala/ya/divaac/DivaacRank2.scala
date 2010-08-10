@@ -25,6 +25,12 @@ object DivaacRank2 extends Log {
       }
     }
     def key(name: String, level: String) = format("%s|%s", name, level)
+    def decodeKey(key: String) = {
+      key.split("\\|") match {
+        case Array(name, level) => Some(Player(name, level))
+        case _ => None
+      }
+    }
 
     lazy val lookup = Memoize1('Player_lookup, (lookupImpl _), 3 * 3600)
     def lookupImpl(key: String) = ps lookup(ps.key(key)) map(_.value)
@@ -71,8 +77,10 @@ object DivaacRank2 extends Log {
   object Record {
     object ps extends Base[Record]("Record") {
       def * = "score".propNi[Long] :: "player".prop[Key] :: "recordDate".propNi[String] >< ((a _) <-> u)
-      def a(score: Long, player: Key, recordDate: String) =
-        Record(score, Player.lookup(player.getName).get, recordDate)
+      def a(score: Long, playerKey: Key, recordDate: String) = {
+        val p = (Player.lookup(playerKey.getName) orElse Player.decodeKey(playerKey.getName)).get
+        Record(score, p, recordDate)
+      }
       def u(r: Record) =
         Some(r.score, Player.ps.key(r.player), r.recordDate)
       def e(r: Record, order: Long, pk: Key) =

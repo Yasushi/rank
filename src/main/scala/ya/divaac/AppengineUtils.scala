@@ -62,7 +62,7 @@ object AppengineUtils {
   object Memcache {
     val memcacheService = MemcacheServiceFactory.getMemcacheService
     import Expiration._
-    val defaultExpire = byDeltaSeconds(6 * 3600)
+    val defaultExpire = byDeltaSeconds(3600)
 
     def validValue[R](value: R) = value match {
       case null => false

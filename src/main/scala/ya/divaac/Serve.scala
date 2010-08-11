@@ -6,7 +6,7 @@ import AppengineUtils.Memcache._
 import Utils._
 
 class Serve extends HttpServlet {
-  lazy val fetch = Memoize1('Serve_fetch, (fetchImpl _), 600)
+  lazy val fetch = Memoize1('Serve_fetch, (fetchImpl _))
   def fetchImpl(key: String) =
     DivaacRank2.fetchRanking(key).map(_.toRanking).map(_.json).map(JSONLiteral.toString)
 

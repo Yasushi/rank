@@ -41,6 +41,11 @@ class Fetch extends HttpServlet {
     log("task header: " + headers.map(h => Option(req.getHeader(h))).filter(_.isDefined).map(_.get).mkString(","))
     Option(req.getPathInfo).map(_.stripPrefix("/").split("/")) match {
       case Some(Array("all")) => queueAllFetching
+      case Some(Array("marg_hard")) =>
+        log("workaround marg_hard")
+        if (!fetchRanking("maeg_hard"))
+          error(resp, "fetch fail. songKey: maeg_hard",
+                HttpServletResponse.SC_SERVICE_UNAVAILABLE)
       case Some(Array(songKey)) =>
         if (!fetchRanking(songKey))
           error(resp, "fetch fail. songKey: " + songKey,

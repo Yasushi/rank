@@ -4,6 +4,10 @@
   <version>6</version>
   <sessions-enabled>true</sessions-enabled>
   <static-files>
-    <include path="/images/**" />
+    <include path="/ext/**" />
+    <include path="/img/**" />
+    <include path="/js/**" />
+    <include path="/css/**" />
+    <include path="/v/**" />
   </static-files>
 </appengine-web-app> 

@@ -11,6 +11,12 @@ class DiivaacRank(info: ProjectInfo) extends AppengineProject(info) with JRebel 
   val sage = "nkpart" %% "sage" % "0.1"
   val scalaToolsSnapshot = ScalaToolsSnapshots
 
+  lazy val resolve = task {
+    updateIvyModule.withModule{ (i,m,c) =>
+      i.resolve(m, new org.apache.ivy.core.resolve.ResolveOptions) }
+    None
+  }
+
   override def jrebelJvmOptions =
     List("-Drebel.log=true", "-Drebel.log.stdout=true")
 

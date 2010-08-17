@@ -30,7 +30,7 @@ object Player {
   def save(players: Seq[Player]) {
     ps.notStored(players) match {
       case Seq() =>
-        case notStored => ps.save(notStored)
+      case notStored => ps.save(notStored)
     }
   }
 
@@ -44,7 +44,7 @@ object Player {
       case None => None
       case Some(Keyed(key, p)) =>
         val rks = Ranking.ps.keysByDate(rankingDate)
-      Record.ps.findByPlayer(key, rks)
+        Record.ps.findByPlayer(key, rks)
     }
   }
 }

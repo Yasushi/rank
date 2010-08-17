@@ -47,14 +47,16 @@ object Ranking {
     Song.save(r.song)
     Player.save(r.records.map(_.player))
     Datastore.withTx { tx =>
-      val Some(Keyed(pk, _)) = ps.lookup(ps.key(r)) orElse ps.save(r).headOption
-                      Record.save(r.records, pk)
-                      tx.commit
-                    }
+      val Some(Keyed(pk, _)) =
+        ps.lookup(ps.key(r)) orElse ps.save(r).headOption
+      Record.save(r.records, pk)
+      tx.commit
+    }
   }
   lazy val RANKING_KEY_PAT = """(.*)__(\d+)""".r
   def decodeKey(key: String) = key match {
-    case RANKING_KEY_PAT(song, date) => Some(Song.lookup(song).getOrElse(Song(song, "")), date)
+    case RANKING_KEY_PAT(song, date) =>
+      Some(Song.lookup(song).getOrElse(Song(song, "")), date)
     case _ => None
   }
 
@@ -68,11 +70,13 @@ object Ranking {
   def lookupLatestImpl(songKey: String) =
     ps.latest(songKey).map(r => r.value.copy(records = Record.lookup(r.key).toSeq))
 
-  lazy val lookupAndToJSON = Memoize1('Ranking_lookupJson, (lookupAndToJSONImpl _).tupled)
+  lazy val lookupAndToJSON =
+    Memoize1('Ranking_lookupJson, (lookupAndToJSONImpl _).tupled)
   def lookupAndToJSONImpl(songKey: String, rankingDate: String) = {
     lookup(songKey, rankingDate) map(_.json) map(JSONLiteral.toString)
   }
-  lazy val lookupLatestAndToJSON = Memoize1('Ranking_lookupLatestJson, lookupLatestAndToJSONImpl)
+  lazy val lookupLatestAndToJSON =
+    Memoize1('Ranking_lookupLatestJson, lookupLatestAndToJSONImpl)
   def lookupLatestAndToJSONImpl(songKey: String) = {
     lookupLatest(songKey) map(_.json) map(JSONLiteral.toString)
   }

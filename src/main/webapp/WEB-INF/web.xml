@@ -33,24 +33,32 @@
   <!--  -->
   <servlet>
     <servlet-name>serve</servlet-name>
-    <servlet-class>ya.divaac.Serve</servlet-class>
+    <servlet-class>ya.divaac.res.Serve</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>serve</servlet-name>
     <url-pattern>/j/*</url-pattern>
   </servlet-mapping>
-
   <servlet>
     <servlet-name>fetch</servlet-name>
-    <servlet-class>ya.divaac.Fetch</servlet-class>
+    <servlet-class>ya.divaac.res.Fetch</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>fetch</servlet-name>
     <url-pattern>/f/*</url-pattern>
   </servlet-mapping>
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>fetch</web-resource-name>
+      <url-pattern>/f/*</url-pattern>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>admin</role-name>
+    </auth-constraint>
+  </security-constraint>
   <servlet>
     <servlet-name>select</servlet-name>
-    <servlet-class>ya.divaac.Select</servlet-class>
+    <servlet-class>ya.divaac.res.Select</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>select</servlet-name>
@@ -66,15 +74,6 @@
     <url-pattern>/remote_api</url-pattern>
   </servlet-mapping>
 
-  <security-constraint>
-    <web-resource-collection>
-      <web-resource-name>fetch</web-resource-name>
-      <url-pattern>/f/*</url-pattern>
-    </web-resource-collection>
-    <auth-constraint>
-      <role-name>admin</role-name>
-    </auth-constraint>
-  </security-constraint>
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>remote api</web-resource-name>

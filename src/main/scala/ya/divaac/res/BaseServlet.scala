@@ -34,4 +34,14 @@ abstract class BaseServlet extends ScalatraServlet with RenderJSON with Log {
     super.halt(code, msg)
   }
 
+  lazy val INT = """[0-9]+""".r
+  def intParam(key: String) = params.get(key) flatMap {
+    case str@INT() if str.toInt > 0 => Some(str.toInt)
+    case _ => None
+  }
+
+  lazy val offset = intParam("offset")
+  lazy val limit = intParam("limit")
+  lazy val isPaged = offset orElse limit isDefined
+
 }

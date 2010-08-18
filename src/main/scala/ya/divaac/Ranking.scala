@@ -21,6 +21,17 @@ case class Ranking(song: Song, records: Seq[Record] = Seq.empty,
       A(records.zipWithIndex.map{case(r, i) => r.json(i+1)}:_*)
     )
   }
+
+  def pagedJsonString(offset: Int, limit: Int) = {
+    import JSONLiteral._
+    JSONLiteral.toString(
+      O("songKey" -> song.key,
+        "songName" -> song.name,
+        "rankingDate" -> rankingDate,
+        "total" -> records.size,
+        "records" ->
+        A(records.zipWithIndex.drop(offset).take(limit).map{case(r, i) => r.json(i+1)}:_*)))
+  }
 }
 object Ranking {
   object ps extends DBase[Ranking]("Ranking") {
@@ -61,23 +72,22 @@ object Ranking {
   }
 
   lazy val lookup = Memoize1('Ranking_lookup, (lookupImpl _).tupled)
-  def lookupImpl(songKey: String, rankingDate: String) = {
-    val key = ps.key(format("%s__%s", songKey, rankingDate))
-    ps.lookup(key).map(_.value.copy(records = Record.lookup(key).toSeq))
+  def lookupImpl(songKey: String, rankingDate: Option[String]) = {
+    rankingDate match {
+      case None =>
+        ps.latest(songKey).map(r => r.value.copy(records = Record.lookup(r.key).toSeq))
+      case Some(date) =>
+        val key = ps.key(format("%s__%s", songKey, date))
+        ps.lookup(key).map(_.value.copy(records = Record.lookup(key).toSeq))
+    }
   }
 
   lazy val lookupLatest = Memoize1('Ranking_lookupLatest, lookupLatestImpl)
-  def lookupLatestImpl(songKey: String) =
-    ps.latest(songKey).map(r => r.value.copy(records = Record.lookup(r.key).toSeq))
+  def lookupLatestImpl(songKey: String) = lookup(songKey, None)
 
   lazy val lookupAndToJSON =
     Memoize1('Ranking_lookupJson, (lookupAndToJSONImpl _).tupled)
-  def lookupAndToJSONImpl(songKey: String, rankingDate: String) = {
+  def lookupAndToJSONImpl(songKey: String, rankingDate: Option[String]) = {
     lookup(songKey, rankingDate) map(_.json) map(JSONLiteral.toString)
-  }
-  lazy val lookupLatestAndToJSON =
-    Memoize1('Ranking_lookupLatestJson, lookupLatestAndToJSONImpl)
-  def lookupLatestAndToJSONImpl(songKey: String) = {
-    lookupLatest(songKey) map(_.json) map(JSONLiteral.toString)
   }
 }

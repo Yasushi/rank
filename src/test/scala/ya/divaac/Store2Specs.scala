@@ -128,7 +128,7 @@ class Store2Specs extends Specification with util.HmsTimer {
       Ranking.save(ranking)
 
       start
-      val ret = Ranking.lookup(songKey, ranking.rankingDate)
+      val ret = Ranking.lookup(songKey, Some(ranking.rankingDate))
       printf("lookup: %s\n", stop)
       ret must beLike {
         case Some(r) =>
@@ -146,7 +146,7 @@ class Store2Specs extends Specification with util.HmsTimer {
       Ranking.save(ranking)
 
       start
-      val json = Ranking.lookupAndToJSON(songKey, ranking.rankingDate)
+      val json = Ranking.lookupAndToJSON(songKey, Some(ranking.rankingDate))
       stop
       printf("lookupAndToJSON: %d ms\n", elapsed)
       json must notBeNull;
@@ -160,7 +160,7 @@ class Store2Specs extends Specification with util.HmsTimer {
       val r2 = r.copy(ts=rts.getTime)
       Ranking.save(r2)
 
-      val latest = Ranking.lookupLatest(songKey)
+      val latest = Ranking.lookup(songKey, None)
       latest must beLike {
         case Some(l) => l.rankingDate must beEqual(rankingDate(rts.getTime))
       }

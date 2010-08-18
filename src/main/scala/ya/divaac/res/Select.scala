@@ -6,7 +6,8 @@ import DivaacRank2._
 class Select extends BaseServlet {
   get("/songlist") {
     info("songlist")
-    JSON(Song.allToJson())
+    JSON(Some(Song.paged(params.get("difficulty"),
+                         offset.getOrElse(1) - 1, limit.getOrElse(1000))))
   }
 
   get("/song/:songKey/?:rankingDate?") {

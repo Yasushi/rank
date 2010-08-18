@@ -2,8 +2,9 @@ application: divaacrank
 version: 7
 runtime: java
 
-#static_files:
-#  - include: /ext/**
+static_files:
+  - include: /ext/**
+  - include: /v/**
 
 handlers:
   - url: /appstats/*

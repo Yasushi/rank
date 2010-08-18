@@ -12,11 +12,8 @@ class Select extends BaseServlet {
   get("/song/:songKey/?:rankingDate?") {
     val songKey = params("songKey")
     info("songKey: {}, rankingDate: {}, params: {}", songKey, params.get("rankingDate"), params.filterKeys(k => k != "songKey" && k != "rankingDate"))
-    if (isPaged) {
-      val r = Ranking.lookup(songKey, params.get("rankingDate"))
-      JSON(r.map(_.pagedJsonString(offset.getOrElse(1) - 1, limit.getOrElse(10))))
-    } else
-      JSON(Ranking.lookupAndToJSON(songKey, params.get("rankingDate")))
+    val r = Ranking.lookup(songKey, params.get("rankingDate"))
+    JSON(r.map(_.pagedJsonString(offset.getOrElse(1) - 1, limit.getOrElse(300))))
   }
 
   get("/player/:name/?:rankingDate?") {

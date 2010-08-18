@@ -40,8 +40,6 @@ abstract class BaseServlet extends ScalatraServlet with RenderJSON with Log {
     case _ => None
   }
 
-  lazy val offset = intParam("offset")
-  lazy val limit = intParam("limit")
-  lazy val isPaged = offset orElse limit isDefined
-
+  def offset = intParam("offset")
+  def limit = intParam("limit")
 }

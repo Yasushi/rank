@@ -1,0 +1,25 @@
+application: divaacrank
+version: 7
+runtime: java
+
+#static_files:
+#  - include: /ext/**
+
+handlers:
+  - url: /appstats/*
+    servlet: com.google.appengine.tools.appstats.AppstatsServlet
+    login: admin
+  - url: /*
+    filter: com.google.appengine.tools.appstats.AppstatsFilter
+    init_params:
+      logMessage: "Appstats available: /appstats/details?time={ID}"
+  - url: /j/*
+    servlet: ya.divaac.res.Serve
+  - url: /s/*
+    servlet: ya.divaac.res.Select
+  - url: /f/*
+    servlet: ya.divaac.res.Fetch
+    login: admin
+  - url: /remote_api
+    servlet: com.google.apphosting.utils.remoteapi.RemoteApiServlet
+    login: admin

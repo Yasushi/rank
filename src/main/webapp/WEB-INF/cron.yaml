@@ -1,0 +1,5 @@
+cron:
+- description: daily fetch
+  url: /f/all
+  schedule: everyday 13:10
+  timezone: Asia/Tokyo

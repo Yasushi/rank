@@ -1,8 +1,0 @@
-<cronentries>
-  <cron>
-    <url>/f/all</url>
-    <description>daily fetch</description>
-    <schedule>everyday 13:10</schedule>
-    <timezone>Asia/Tokyo</timezone>
-  </cron>
-</cronentries>

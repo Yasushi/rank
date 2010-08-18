@@ -1,0 +1,6 @@
+queue:
+- name: default
+  rate: 1/s
+- name: fetch
+  rate: 4/m
+  bucket_size: 1

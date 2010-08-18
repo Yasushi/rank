@@ -11,6 +11,8 @@ Ext.setup({
         url: 'http://divaacrank.appspot.com/s/songlist',
         reader: {
           type: 'json',
+          totalProperty: 'total',
+          root: 'songs',
           idProperty: 'key'
         }
       },
@@ -22,7 +24,8 @@ Ext.setup({
         return record.get('key').split('_')[1] || "";
       },
       fields: ['key', 'name'],
-      autoLoad: true
+      autoLoad: true,
+      pageSize: 100
     });
     var list = new Ext.List({
       height: '100%',

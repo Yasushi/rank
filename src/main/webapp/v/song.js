@@ -20,6 +20,7 @@ Ext.setup({
                {name: 'level', type: 'array'},
                'score', 'date'],
       autoLoad: true,
+      pageSize: 300,
       listeners: {
         datachanged: function(store) {
           if (store.proxy.reader.rawData) {

@@ -37,8 +37,6 @@ object Record {
     }
     def u(r: Record) =
       Some(r.score, Player.ps.key(r.player), r.recordDate)
-    def e(r: Record, order: Long, pk: Key) =
-      keyedEntity(r, Datastore.keyById(kind, order, pk))
     override def childrenOf(pk: Key)(implicit ds: DatastoreService) = {
       find.query(_.setAncestor(pk)).query("__key__" asc).fetch(_.prefetchSize(300).chunkSize(300)).iterable
     }
@@ -55,9 +53,9 @@ object Record {
   }
 
   def save(rs: Seq[Record], pk: Key) = {
-    val es =
-      rs.sortBy(_.score * -1).zipWithIndex.map{case(r, i) => ps.e(r, i+1, pk)}
-    datastoreService.put(asIterable(es))
+    val kts =
+      rs.sortBy(_.score * -1).zipWithIndex.map{case(r, i) => Keyed(Datastore.keyById(ps.kind, i + 1, pk), r)}
+    ps.keyedSave(kts)
   }
   lazy val lookup = Memoize1('Record_lookup,lookupImpl)
   def lookupImpl(rankingKey: Key) = ps.childrenOf(rankingKey).map(_.value)

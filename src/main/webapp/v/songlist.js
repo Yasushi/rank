@@ -16,10 +16,10 @@ Ext.setup({
           idProperty: 'key'
         }
       },
-      sorters: [
-        {field: 'name', direction: 'ASC'},
-        {field: 'key', direction: 'ASC'}
-      ],
+      //sorters: [
+      //  {field: 'name', direction: 'ASC'},
+      //  {field: 'key', direction: 'ASC'}
+      //],
       getGroupString: function(record) {
         return record.get('key').split('_')[1] || "";
       },

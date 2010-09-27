@@ -13,9 +13,9 @@ Ext.setup({
           messageProperty: 'songName'
         }
       },
-      sorters: [
-        {field: 'rank', direction: 'ASC'}
-      ],
+      //sorters: [
+      //  {field: 'rank', direction: 'ASC'}
+      //],
       fields: ['rank', 'name',
                {name: 'level', type: 'array'},
                'score', 'date'],
@@ -35,7 +35,8 @@ Ext.setup({
       disclosure: {
         scope: data,
         handler: function(record, btn, index) {
-            alert(record);
+            var tpl = new Ext.XTemplate("{rank}位\n{name}\n{score}\n{date}\n{level}")
+            alert(tpl.apply(record.data));
         }
       },
       store: data,

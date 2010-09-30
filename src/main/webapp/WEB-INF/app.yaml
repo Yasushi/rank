@@ -10,7 +10,7 @@ handlers:
   - url: /appstats/*
     servlet: com.google.appengine.tools.appstats.AppstatsServlet
     login: admin
-  - url: /*
+  - url: /s/*
     filter: com.google.appengine.tools.appstats.AppstatsFilter
     init_params:
       logMessage: "Appstats available: /appstats/details?time={ID}"

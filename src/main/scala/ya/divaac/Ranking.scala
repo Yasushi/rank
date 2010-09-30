@@ -10,7 +10,7 @@ import AppengineUtils.Memcache._
 case class Ranking(song: Song, records: Seq[Record] = Seq.empty,
                    ts: Date = new Date) {
   lazy val rankingDate = DateUtils.rankingDate(ts)
-  lazy val key = format("%s__%s", song.key, rankingDate)
+  lazy val key = Ranking.key(song, rankingDate)
 
   lazy val json = {
     import JSONLiteral._
@@ -33,7 +33,7 @@ case class Ranking(song: Song, records: Seq[Record] = Seq.empty,
         A(records.zipWithIndex.drop(offset).take(limit).map{case(r, i) => r.json(i+1)}:_*)))
   }
 }
-object Ranking {
+object Ranking extends Log {
   object ps extends DBase[Ranking]("Ranking") {
     def * = "song".prop[String] :: "ts".prop[Date] >< ((a _) <-> u)
     def a(songKey: String, ts: Date) =
@@ -64,6 +64,20 @@ object Ranking {
       tx.commit
     }
   }
+  def delete(song: Song, rankingDate: String) {
+    import scala.collection.JavaConversions._
+    Datastore.withTx { tx =>
+      val rankingKey = ps.key(key(song, rankingDate))
+      val recordKeys = Record.ps.find.query(_.setAncestor(rankingKey)).fetch(_.prefetchSize(300).chunkSize(300)).keys
+      datastoreService.delete(asIterable(recordKeys))
+      datastoreService.delete(rankingKey)
+      tx.commit
+      info("deleted ranking {}, records {}.", rankingKey, recordKeys.size)
+    }
+  }
+  def key(song: Song, rankingDate: String) =
+    format("%s__%s", song.key, rankingDate)
+
   lazy val RANKING_KEY_PAT = """(.*)__(\d+)""".r
   def decodeKey(key: String) = key match {
     case RANKING_KEY_PAT(song, date) =>

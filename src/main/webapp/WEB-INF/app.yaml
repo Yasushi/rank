@@ -21,6 +21,9 @@ handlers:
   - url: /f/*
     servlet: ya.divaac.res.Fetch
     login: admin
+  - url: /expire/*
+    servlet: ya.divaac.res.Expire
+    login: admin
   - url: /remote_api
     servlet: com.google.apphosting.utils.remoteapi.RemoteApiServlet
     login: admin
